@@ -82,14 +82,15 @@ export default function App() {
         console.log("🔧 Sending basic session update...");
         sendSessionUpdate(dc, {
           turn_detection: {
-            type: "server_vad",
-            threshold: 0.7,  // Higher threshold to reduce false triggers
-            silence_duration_ms: 1500,  // Longer silence before responding
-            prefix_padding_ms: 300
+            type: "semantic_vad",
+            // threshold: 0.8,  // Higher threshold to reduce false triggers
+            // silence_duration_ms: 1500,  // Longer silence before responding
+            // prefix_padding_ms: 300
+            eagerness: "low"
           },
           modalities: ["text", "audio"],
           voice: "coral",   //Supported values are: 'alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', and 'verse'.
-          max_response_output_tokens: 150,  // Limit AI response length
+          max_response_output_tokens: 1000,  // Allow longer AI responses
           instructions:
             "You are Drival, a personal driving assistant. Be brief and conversational. When users ask about their trips, use the get_driving_data function which returns COMPLETE data for each category (all trips, sorted newest first). Use this complete data to give accurate answers about counts, dates, and latest trips.",
         });
@@ -135,8 +136,7 @@ export default function App() {
           });
         }, 1000);
 
-        // Initial greeting
-        setTimeout(() => sendResponseCreate(dc), 500);
+        // Let the model start naturally without forcing an initial response
       };
     } catch (e) {
       console.error(e);
@@ -212,15 +212,23 @@ export default function App() {
         break;
 
       case "response.function_call_arguments.done": {
-        // Tool call arrived – execute via backend and *immediately* continue
+        // Tool call arrived – execute via backend and then continue
         console.log(
           "📞 Function call received:",
           event.name,
           "Args:",
-          event.arguments
+          event.arguments,
+          "Call ID:",
+          event.call_id
         );
 
         if (event.name === "get_driving_data") {
+          // Validate that we have the required call_id
+          if (!event.call_id) {
+            console.error("❌ Missing call_id in function call event:", event);
+            return;
+          }
+          
           try {
             const args = JSON.parse(event.arguments || "{}");
             console.log("🔍 Calling backend with args:", args);
@@ -245,7 +253,7 @@ export default function App() {
             console.log("✅ Backend response:", result);
             const { content } = result;
 
-            // 1) deliver function result
+            // Send function result and then trigger model response
             if (dcRef.current) {
               console.log("📤 Sending function result back to model");
               sendFunctionResult(
@@ -253,11 +261,13 @@ export default function App() {
                 event.call_id,
                 content || "No data found"
               );
-              // 2) immediately tell model to continue
-              sendResponseCreate(dcRef.current, {
-                modalities: ["audio", "text"],
-                max_output_tokens: 300,
-              });
+              // Small delay to ensure function result is processed before response.create
+              setTimeout(() => {
+                if (dcRef.current) {
+                  console.log("📤 Triggering model response after function result");
+                  sendResponseCreate(dcRef.current);
+                }
+              }, 100);
             }
           } catch (e) {
             console.error("❌ Tool execution error:", e);
@@ -267,7 +277,13 @@ export default function App() {
                 event.call_id,
                 `Sorry, I couldn't retrieve that data. Error: ${e.message}`
               );
-              sendResponseCreate(dcRef.current);
+              // Small delay to ensure function result is processed before response.create
+              setTimeout(() => {
+                if (dcRef.current) {
+                  console.log("📤 Triggering model response after error function result");
+                  sendResponseCreate(dcRef.current);
+                }
+              }, 100);
             }
           }
         } else {
@@ -329,7 +345,8 @@ export default function App() {
       }
 
       case "error":
-        console.error("Realtime error:", event.error);
+        console.error("❌ Realtime error:", event.error);
+        console.error("❌ Full error event:", event);
         setStatus(`Error: ${event.error?.message || "Unknown"}`);
         break;
     }
