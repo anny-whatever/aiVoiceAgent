@@ -83,11 +83,13 @@ export default function App() {
         sendSessionUpdate(dc, {
           turn_detection: {
             type: "server_vad",
-            threshold: 0.5,
-            silence_duration_ms: 600,
+            threshold: 0.7,  // Higher threshold to reduce false triggers
+            silence_duration_ms: 1500,  // Longer silence before responding
+            prefix_padding_ms: 300
           },
           modalities: ["text", "audio"],
-          voice: "alloy",
+          voice: "coral",   //Supported values are: 'alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', and 'verse'.
+          max_response_output_tokens: 150,  // Limit AI response length
           instructions:
             "You are Drival, a personal driving assistant. Be brief and conversational. When users ask about their trips, use the get_driving_data function which returns COMPLETE data for each category (all trips, sorted newest first). Use this complete data to give accurate answers about counts, dates, and latest trips.",
         });
@@ -188,12 +190,24 @@ export default function App() {
       case "output_audio_buffer.started":
         setIsAISpeaking(true);
         setStatus("AI speaking…");
+        // Mute microphone during AI speech to prevent interruption
+        if (micRef.current) {
+          micRef.current.getAudioTracks().forEach(track => {
+            track.enabled = false;
+          });
+        }
         aiDing();
         break;
 
       case "output_audio_buffer.stopped":
         setIsAISpeaking(false);
         setStatus("Ready");
+        // Re-enable microphone after AI finishes
+        if (micRef.current) {
+          micRef.current.getAudioTracks().forEach(track => {
+            track.enabled = true;
+          });
+        }
         setTimeout(userDing, 250);
         break;
 
