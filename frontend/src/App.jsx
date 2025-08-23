@@ -78,7 +78,8 @@ export default function App() {
         setIsConnected(true);
         setStatus("Connected — say hello!");
 
-        // Establish session config (tools + tool_choice + transcription)
+        // Try minimal session config first to isolate the issue
+        console.log("🔧 Sending basic session update...");
         sendSessionUpdate(dc, {
           turn_detection: {
             type: "server_vad",
@@ -87,42 +88,50 @@ export default function App() {
           },
           modalities: ["text", "audio"],
           voice: "alloy",
-          tool_choice: "auto",
-          tools: [
-            {
-              type: "function",
-              name: "get_driving_data",
-              description: "Get personal trip data and insights",
-              parameters: {
-                type: "object",
-                properties: {
-                  category: {
-                    type: "string",
-                    enum: [
-                      "work_commute",
-                      "errands_shopping", 
-                      "social_visits",
-                      "entertainment_dining",
-                      "weekend_trips",
-                      "medical_appointments",
-                      "general",
-                    ],
-                    description: "Category of trip data to retrieve",
-                  },
-                  query: { 
-                    type: "string",
-                    description: "Specific query about the trip data",
-                  },
-                },
-                required: ["category", "query"],
-              },
-            },
-          ],
-          // Optional but useful: get transcripts with the audio
-          input_audio_transcription: { model: "whisper-1" },
           instructions:
-            "You are Drival, a personal driving assistant. Be brief and conversational. When users ask about their trips or driving data, use the get_driving_data function to retrieve relevant information.",
+            "You are Drival, a personal driving assistant. Be brief and conversational.",
         });
+
+        // TEMPORARILY DISABLE TOOLS TO TEST IF THAT'S THE ISSUE
+        // Uncomment the setTimeout block below after testing basic chat works
+        /*
+        setTimeout(() => {
+          console.log("🔧 Adding tools configuration...");
+          sendSessionUpdate(dc, {
+            tool_choice: "auto",
+            tools: [
+              {
+                type: "function",
+                name: "get_driving_data",
+                description: "Get personal trip data and insights",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    category: {
+                      type: "string",
+                      enum: [
+                        "work_commute",
+                        "errands_shopping",
+                        "social_visits",
+                        "entertainment_dining",
+                        "weekend_trips",
+                        "medical_appointments",
+                        "general",
+                      ],
+                      description: "Category of trip data to retrieve",
+                    },
+                    query: {
+                      type: "string",
+                      description: "Specific query about the trip data",
+                    },
+                  },
+                  required: ["category", "query"],
+                },
+              },
+            ],
+          });
+        }, 1000);
+        */
 
         // Initial greeting
         setTimeout(() => sendResponseCreate(dc), 500);
@@ -161,6 +170,10 @@ export default function App() {
     }
 
     switch (event.type) {
+      case "session.updated":
+        console.log("✅ Session updated successfully");
+        break;
+
       case "input_audio_buffer.speech_started":
         setIsListening(true);
         setStatus("Listening...");
@@ -186,25 +199,34 @@ export default function App() {
 
       case "response.function_call_arguments.done": {
         // Tool call arrived – execute via backend and *immediately* continue
-        console.log("📞 Function call received:", event.name, "Args:", event.arguments);
-        
+        console.log(
+          "📞 Function call received:",
+          event.name,
+          "Args:",
+          event.arguments
+        );
+
         if (event.name === "get_driving_data") {
           try {
             const args = JSON.parse(event.arguments || "{}");
             console.log("🔍 Calling backend with args:", args);
-            
+
             const r = await fetch(`${BACKEND_URL}/api/tools/get_driving_data`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(args),
             });
-            
+
             if (!r.ok) {
               const errorText = await r.text();
-              console.error("❌ Backend tool call failed:", r.status, errorText);
+              console.error(
+                "❌ Backend tool call failed:",
+                r.status,
+                errorText
+              );
               throw new Error(`Backend error: ${r.status} - ${errorText}`);
             }
-            
+
             const result = await r.json();
             console.log("✅ Backend response:", result);
             const { content } = result;
@@ -243,10 +265,26 @@ export default function App() {
       case "response.done": {
         // Transient server errors do happen; retry once per failed response id.
         const resp = event.response;
+        console.log("🎯 Response completed:", {
+          status: resp?.status,
+          id: resp?.id,
+          usage: resp?.usage,
+        });
+
         if (resp?.status === "failed") {
           const errType = resp?.status_details?.error?.type;
+          const errMessage = resp?.status_details?.error?.message;
+          const errCode = resp?.status_details?.error?.code;
           const respId = resp?.id || "unknown";
-          console.error("❌ Response failed", resp?.status_details);
+
+          console.error("❌ FULL Response failure details:", {
+            response_id: respId,
+            status_details: resp?.status_details,
+            full_response: resp,
+            error_type: errType,
+            error_message: errMessage,
+            error_code: errCode,
+          });
 
           if (
             errType === "server_error" &&
@@ -266,7 +304,11 @@ export default function App() {
               }
             }, 300);
           } else {
-            setStatus("Model error. You can speak again.");
+            setStatus(
+              `Model error: ${
+                errMessage || errType || "Unknown"
+              }. You can speak again.`
+            );
           }
         }
         break;
