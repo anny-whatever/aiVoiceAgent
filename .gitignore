@@ -1,0 +1,11 @@
+.env
+node_modules
+dist
+build
+public
+src
+test
+docs
+examples
+scripts
+tools

@@ -1,0 +1,249 @@
+{
+  "systemPrompt": "You are Drival, your personal driving assistant and trip analyzer. You have access to all your recent driving data from the last 2 months. You can provide insights about your driving patterns, analyze your trips, remind you about frequent destinations, calculate your driving statistics, and help you understand your travel habits. You're helpful, personal, and can remember details about your trips.",
+  "instructions": "When users ask about their trips, driving patterns, or travel history, search through their personal trip data to provide accurate insights and analysis. You can discuss specific trips, calculate totals, identify patterns, and provide personalized recommendations based on their actual driving behavior.",
+  "tripData": {
+    "work_commute": [
+      {
+        "id": "commute_001",
+        "date": "2024-12-02",
+        "time": "08:15 AM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Downtown Office - 567 Business Plaza",
+        "distance": "12.3 miles",
+        "duration": "28 minutes",
+        "purpose": "Work commute",
+        "notes": "Heavy traffic on I-405"
+      },
+      {
+        "id": "commute_002",
+        "date": "2024-12-02",
+        "time": "05:45 PM",
+        "start_location": "Downtown Office - 567 Business Plaza",
+        "end_location": "Home - 1234 Maple Street",
+        "distance": "12.8 miles",
+        "duration": "35 minutes",
+        "purpose": "Return home from work",
+        "notes": "Took alternate route via Oak Avenue"
+      },
+      {
+        "id": "commute_003",
+        "date": "2024-11-28",
+        "time": "08:20 AM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Downtown Office - 567 Business Plaza",
+        "distance": "12.3 miles",
+        "duration": "32 minutes",
+        "purpose": "Work commute",
+        "notes": "Light traffic, arrived early"
+      },
+      {
+        "id": "commute_004",
+        "date": "2024-11-28",
+        "time": "06:10 PM",
+        "start_location": "Downtown Office - 567 Business Plaza",
+        "end_location": "Home - 1234 Maple Street",
+        "distance": "12.8 miles",
+        "duration": "29 minutes",
+        "purpose": "Return home from work",
+        "notes": "Good traffic flow"
+      }
+    ],
+    "errands_shopping": [
+      {
+        "id": "errand_001",
+        "date": "2024-12-01",
+        "time": "10:30 AM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Whole Foods Market - Westfield Plaza",
+        "distance": "4.2 miles",
+        "duration": "12 minutes",
+        "purpose": "Grocery shopping",
+        "notes": "Weekly grocery run"
+      },
+      {
+        "id": "errand_002",
+        "date": "2024-11-30",
+        "time": "02:15 PM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Target - Riverside Mall",
+        "distance": "6.7 miles",
+        "duration": "18 minutes",
+        "purpose": "Shopping for household items",
+        "notes": "Black Friday deals"
+      },
+      {
+        "id": "errand_003",
+        "date": "2024-11-23",
+        "time": "11:00 AM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Costco Wholesale - Industrial Blvd",
+        "distance": "8.1 miles",
+        "duration": "22 minutes",
+        "purpose": "Bulk shopping for Thanksgiving",
+        "notes": "Pre-Thanksgiving stock up"
+      },
+      {
+        "id": "errand_004",
+        "date": "2024-11-16",
+        "time": "09:45 AM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "CVS Pharmacy - Main Street",
+        "distance": "2.1 miles",
+        "duration": "7 minutes",
+        "purpose": "Pick up prescription",
+        "notes": "Quick pharmacy run"
+      }
+    ],
+    "social_visits": [
+      {
+        "id": "social_001",
+        "date": "2024-11-29",
+        "time": "11:00 AM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Mom's House - 890 Elm Drive",
+        "distance": "18.5 miles",
+        "duration": "32 minutes",
+        "purpose": "Thanksgiving visit",
+        "notes": "Thanksgiving dinner with family"
+      },
+      {
+        "id": "social_002",
+        "date": "2024-11-29",
+        "time": "09:30 PM",
+        "start_location": "Mom's House - 890 Elm Drive",
+        "end_location": "Home - 1234 Maple Street",
+        "distance": "18.5 miles",
+        "duration": "28 minutes",
+        "purpose": "Return from Thanksgiving",
+        "notes": "Light evening traffic"
+      },
+      {
+        "id": "social_003",
+        "date": "2024-11-17",
+        "time": "07:00 PM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Sarah's Apartment - 456 Pine Complex",
+        "distance": "9.2 miles",
+        "duration": "19 minutes",
+        "purpose": "Friend's birthday party",
+        "notes": "Sarah's birthday celebration"
+      },
+      {
+        "id": "social_004",
+        "date": "2024-11-17",
+        "time": "11:45 PM",
+        "start_location": "Sarah's Apartment - 456 Pine Complex",
+        "end_location": "Home - 1234 Maple Street",
+        "distance": "9.2 miles",
+        "duration": "16 minutes",
+        "purpose": "Return from party",
+        "notes": "Late night drive home"
+      }
+    ],
+    "entertainment_dining": [
+      {
+        "id": "entertainment_001",
+        "date": "2024-11-24",
+        "time": "07:30 PM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "AMC Theater - Sunset Plaza",
+        "distance": "7.8 miles",
+        "duration": "17 minutes",
+        "purpose": "Movie night",
+        "notes": "Watched the new Marvel movie"
+      },
+      {
+        "id": "entertainment_002",
+        "date": "2024-11-24",
+        "time": "10:45 PM",
+        "start_location": "AMC Theater - Sunset Plaza",
+        "end_location": "Home - 1234 Maple Street",
+        "distance": "7.8 miles",
+        "duration": "15 minutes",
+        "purpose": "Return from movies",
+        "notes": "Late show ended"
+      },
+      {
+        "id": "entertainment_003",
+        "date": "2024-11-15",
+        "time": "12:30 PM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Olive Garden - Restaurant Row",
+        "distance": "5.9 miles",
+        "duration": "14 minutes",
+        "purpose": "Lunch date",
+        "notes": "Weekend lunch with partner"
+      }
+    ],
+    "weekend_trips": [
+      {
+        "id": "weekend_001",
+        "date": "2024-11-22",
+        "time": "09:00 AM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Mountain View Lake Resort",
+        "distance": "87.2 miles",
+        "duration": "1 hour 45 minutes",
+        "purpose": "Weekend getaway",
+        "notes": "Beautiful drive through mountain roads"
+      },
+      {
+        "id": "weekend_002",
+        "date": "2024-11-24",
+        "time": "04:00 PM",
+        "start_location": "Mountain View Lake Resort",
+        "end_location": "Home - 1234 Maple Street",
+        "distance": "87.2 miles",
+        "duration": "1 hour 52 minutes",
+        "purpose": "Return from weekend trip",
+        "notes": "Heavy Sunday traffic"
+      },
+      {
+        "id": "weekend_003",
+        "date": "2024-11-03",
+        "time": "10:30 AM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Oceanside Beach Town",
+        "distance": "124.6 miles",
+        "duration": "2 hours 15 minutes",
+        "purpose": "Beach day trip",
+        "notes": "Perfect weather for the coast"
+      },
+      {
+        "id": "weekend_004",
+        "date": "2024-11-03",
+        "time": "06:45 PM",
+        "start_location": "Oceanside Beach Town",
+        "end_location": "Home - 1234 Maple Street",
+        "distance": "124.6 miles",
+        "duration": "2 hours 28 minutes",
+        "purpose": "Return from beach",
+        "notes": "Sunset drive back, gorgeous views"
+      }
+    ],
+    "medical_appointments": [
+      {
+        "id": "medical_001",
+        "date": "2024-11-14",
+        "time": "02:00 PM",
+        "start_location": "Home - 1234 Maple Street",
+        "end_location": "Dr. Smith's Office - Medical Plaza",
+        "distance": "6.3 miles",
+        "duration": "16 minutes",
+        "purpose": "Annual checkup",
+        "notes": "Routine health visit"
+      },
+      {
+        "id": "medical_002",
+        "date": "2024-11-14",
+        "time": "03:30 PM",
+        "start_location": "Dr. Smith's Office - Medical Plaza",
+        "end_location": "Home - 1234 Maple Street",
+        "distance": "6.3 miles",
+        "duration": "13 minutes",
+        "purpose": "Return from doctor",
+        "notes": "All clear from checkup"
+      }
+    ]
+  }
+}
