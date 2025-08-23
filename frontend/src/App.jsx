@@ -20,6 +20,10 @@ export default function App() {
   const micRef = useRef(null);
   const audioRef = useRef(null);
 
+  // guard to avoid spamming retries
+  const lastFailedResponseIdRef = useRef(null);
+  const retriedOnceForResponseRef = useRef({});
+
   const dingCtxRef = useRef(null);
   const ding = (f = 800, ms = 150) => {
     dingCtxRef.current ??= new (window.AudioContext ||
@@ -74,7 +78,7 @@ export default function App() {
         setIsConnected(true);
         setStatus("Connected — say hello!");
 
-        // Establish session config, including tools + tool_choice
+        // Establish session config (tools + tool_choice + transcription)
         sendSessionUpdate(dc, {
           turn_detection: {
             type: "server_vad",
@@ -110,6 +114,8 @@ export default function App() {
               },
             },
           ],
+          // Optional but useful: get transcripts with the audio
+          input_audio_transcription: { model: "whisper-1" },
           instructions:
             "You are Drival, a personal driving assistant. Be brief and conversational.",
         });
@@ -214,12 +220,37 @@ export default function App() {
         break;
       }
 
-      case "response.done":
-        if (event.response?.status === "failed") {
-          console.error("❌ Response failed", event.response?.status_details);
-          setStatus("Model error. You can speak again.");
+      case "response.done": {
+        // Transient server errors do happen; retry once per failed response id.
+        const resp = event.response;
+        if (resp?.status === "failed") {
+          const errType = resp?.status_details?.error?.type;
+          const respId = resp?.id || "unknown";
+          console.error("❌ Response failed", resp?.status_details);
+
+          if (
+            errType === "server_error" &&
+            !retriedOnceForResponseRef.current[respId] &&
+            dcRef.current
+          ) {
+            retriedOnceForResponseRef.current[respId] = true;
+            lastFailedResponseIdRef.current = respId;
+            setStatus("Server error — retrying once…");
+            // brief backoff then try to continue again
+            setTimeout(() => {
+              if (dcRef.current) {
+                sendResponseCreate(dcRef.current, {
+                  modalities: ["audio", "text"],
+                  max_output_tokens: 300,
+                });
+              }
+            }, 300);
+          } else {
+            setStatus("Model error. You can speak again.");
+          }
         }
         break;
+      }
 
       case "error":
         console.error("Realtime error:", event.error);

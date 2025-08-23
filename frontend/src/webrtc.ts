@@ -39,7 +39,7 @@ export async function connectRealtime({
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
 
-  // IMPORTANT: include the Realtime beta header on the SDP POST
+  // REQUIRED during Realtime beta; missing this can cause late server_error
   const r = await fetch(
     "https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17",
     {
@@ -47,7 +47,7 @@ export async function connectRealtime({
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/sdp",
-        "OpenAI-Beta": "realtime=v1", // required during Realtime beta
+        "OpenAI-Beta": "realtime=v1",
       },
       body: offer.sdp,
     }
