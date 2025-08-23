@@ -23,7 +23,9 @@ router.post("/tools/get_driving_data", (req, res) => {
   try {
     const content = findRelevantTripData(category, query);
     console.log(
-      "✅ Tool response generated:",
+      "✅ Complete data returned for category:",
+      category,
+      "| First 100 chars:",
       content.substring(0, 100) + "..."
     );
     return res.json({ content });

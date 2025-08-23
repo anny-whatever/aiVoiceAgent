@@ -89,12 +89,10 @@ export default function App() {
           modalities: ["text", "audio"],
           voice: "alloy",
           instructions:
-            "You are Drival, a personal driving assistant. Be brief and conversational.",
+            "You are Drival, a personal driving assistant. Be brief and conversational. When users ask about their trips, use the get_driving_data function which returns COMPLETE data for each category (all trips, sorted newest first). Use this complete data to give accurate answers about counts, dates, and latest trips.",
         });
 
-        // TEMPORARILY DISABLE TOOLS TO TEST IF THAT'S THE ISSUE
-        // Uncomment the setTimeout block below after testing basic chat works
-        /*
+        // Add tools configuration with complete data approach
         setTimeout(() => {
           console.log("🔧 Adding tools configuration...");
           sendSessionUpdate(dc, {
@@ -103,7 +101,8 @@ export default function App() {
               {
                 type: "function",
                 name: "get_driving_data",
-                description: "Get personal trip data and insights",
+                description:
+                  "Get complete trip data for a category. Returns ALL trips in that category sorted by date (newest first), giving you full context to answer accurately.",
                 parameters: {
                   type: "object",
                   properties: {
@@ -118,11 +117,13 @@ export default function App() {
                         "medical_appointments",
                         "general",
                       ],
-                      description: "Category of trip data to retrieve",
+                      description:
+                        "Category of trip data to retrieve - you'll get ALL trips in this category",
                     },
                     query: {
                       type: "string",
-                      description: "Specific query about the trip data",
+                      description:
+                        "Description of what the user is asking about (the query parameter is required but the function returns complete data regardless)",
                     },
                   },
                   required: ["category", "query"],
@@ -131,7 +132,6 @@ export default function App() {
             ],
           });
         }, 1000);
-        */
 
         // Initial greeting
         setTimeout(() => sendResponseCreate(dc), 500);

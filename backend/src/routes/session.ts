@@ -18,7 +18,7 @@ router.post("/session", async (_req, res) => {
         "OpenAI-Beta": "realtime=v1", // not strictly required here, but harmless
       },
       body: JSON.stringify({
-        model: "gpt-4o-realtime-preview-2024-12-17",
+        model: "gpt-4o-mini-realtime-preview-2024-12-17",
         voice: "alloy",
         // Keep minimal config here - tools will be added via session.update
         instructions:
