@@ -155,6 +155,7 @@ export default function App() {
         setStatus("Listening...");
         userDing();
         break;
+
       case "input_audio_buffer.speech_stopped":
         setIsListening(false);
         setStatus("Processing...");
@@ -165,6 +166,7 @@ export default function App() {
         setStatus("AI speaking…");
         aiDing();
         break;
+
       case "output_audio_buffer.stopped":
         setIsAISpeaking(false);
         setStatus("Ready");

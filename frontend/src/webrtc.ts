@@ -19,7 +19,7 @@ export async function connectRealtime({
       const data = JSON.parse(e.data);
       onEvent(data);
     } catch {
-      // ignore
+      // ignore non-JSON control messages
     }
   };
 
@@ -39,6 +39,7 @@ export async function connectRealtime({
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
 
+  // IMPORTANT: include the Realtime beta header on the SDP POST
   const r = await fetch(
     "https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17",
     {
@@ -46,7 +47,7 @@ export async function connectRealtime({
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/sdp",
-        "OpenAI-Beta": "realtime=v1", // REQUIRED
+        "OpenAI-Beta": "realtime=v1", // required during Realtime beta
       },
       body: offer.sdp,
     }
