@@ -100,15 +100,19 @@ export default function App() {
                     type: "string",
                     enum: [
                       "work_commute",
-                      "errands_shopping",
+                      "errands_shopping", 
                       "social_visits",
                       "entertainment_dining",
                       "weekend_trips",
                       "medical_appointments",
                       "general",
                     ],
+                    description: "Category of trip data to retrieve",
                   },
-                  query: { type: "string" },
+                  query: { 
+                    type: "string",
+                    description: "Specific query about the trip data",
+                  },
                 },
                 required: ["category", "query"],
               },
@@ -117,7 +121,7 @@ export default function App() {
           // Optional but useful: get transcripts with the audio
           input_audio_transcription: { model: "whisper-1" },
           instructions:
-            "You are Drival, a personal driving assistant. Be brief and conversational.",
+            "You are Drival, a personal driving assistant. Be brief and conversational. When users ask about their trips or driving data, use the get_driving_data function to retrieve relevant information.",
         });
 
         // Initial greeting
@@ -150,7 +154,8 @@ export default function App() {
     if (
       event.type === "error" ||
       event.type.startsWith("response.") ||
-      event.type.includes("function_call")
+      event.type.includes("function_call") ||
+      event.type === "session.updated"
     ) {
       console.log("📨", event.type, event);
     }
@@ -181,19 +186,32 @@ export default function App() {
 
       case "response.function_call_arguments.done": {
         // Tool call arrived – execute via backend and *immediately* continue
+        console.log("📞 Function call received:", event.name, "Args:", event.arguments);
+        
         if (event.name === "get_driving_data") {
           try {
             const args = JSON.parse(event.arguments || "{}");
+            console.log("🔍 Calling backend with args:", args);
+            
             const r = await fetch(`${BACKEND_URL}/api/tools/get_driving_data`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(args),
             });
-            if (!r.ok) throw new Error(await r.text());
-            const { content } = await r.json();
+            
+            if (!r.ok) {
+              const errorText = await r.text();
+              console.error("❌ Backend tool call failed:", r.status, errorText);
+              throw new Error(`Backend error: ${r.status} - ${errorText}`);
+            }
+            
+            const result = await r.json();
+            console.log("✅ Backend response:", result);
+            const { content } = result;
 
             // 1) deliver function result
             if (dcRef.current) {
+              console.log("📤 Sending function result back to model");
               sendFunctionResult(
                 dcRef.current,
                 event.call_id,
@@ -206,16 +224,18 @@ export default function App() {
               });
             }
           } catch (e) {
-            console.error("Tool error:", e);
+            console.error("❌ Tool execution error:", e);
             if (dcRef.current) {
               sendFunctionResult(
                 dcRef.current,
                 event.call_id,
-                "Sorry, I couldn't retrieve that right now."
+                `Sorry, I couldn't retrieve that data. Error: ${e.message}`
               );
               sendResponseCreate(dcRef.current);
             }
           }
+        } else {
+          console.warn("⚠️ Unknown function call:", event.name);
         }
         break;
       }

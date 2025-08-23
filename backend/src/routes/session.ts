@@ -20,36 +20,9 @@ router.post("/session", async (_req, res) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: "alloy",
-        // keep server-side instructions short; we'll send fuller config via session.update from client
+        // Keep minimal config here - tools will be added via session.update
         instructions:
           "You are Drival, a helpful driving assistant and trip analyst. Be concise and conversational.",
-        tool_choice: "auto",
-        tools: [
-          {
-            type: "function",
-            name: "get_driving_data",
-            description: "Get personal trip data and insights",
-            parameters: {
-              type: "object",
-              properties: {
-                category: {
-                  type: "string",
-                  enum: [
-                    "work_commute",
-                    "errands_shopping",
-                    "social_visits",
-                    "entertainment_dining",
-                    "weekend_trips",
-                    "medical_appointments",
-                    "general",
-                  ],
-                },
-                query: { type: "string" },
-              },
-              required: ["category", "query"],
-            },
-          },
-        ],
       }),
     });
 

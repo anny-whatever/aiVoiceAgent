@@ -5,18 +5,30 @@ const router = Router();
 
 /** Tool endpoint invoked by the browser when model requests get_driving_data */
 router.post("/tools/get_driving_data", (req, res) => {
+  console.log("🔧 Tool called:", req.body);
+
   const { category, query } = req.body || {};
   if (!category || !query) {
+    console.error("❌ Missing required parameters:", {
+      category,
+      query,
+      body: req.body,
+    });
     return res.status(400).json({
       error: "Category and query parameters are required",
       received: req.body,
     });
   }
+
   try {
     const content = findRelevantTripData(category, query);
+    console.log(
+      "✅ Tool response generated:",
+      content.substring(0, 100) + "..."
+    );
     return res.json({ content });
   } catch (e: any) {
-    console.error("Tool execution error:", e);
+    console.error("❌ Tool execution error:", e);
     return res.status(500).json({
       error: "Failed to retrieve trip data",
       details: e?.message || "Unknown error",
