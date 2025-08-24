@@ -16,6 +16,8 @@ export default function App() {
   const [isAISpeaking, setIsAISpeaking] = useState(false);
   const [selectedUser, setSelectedUser] = useState("user1");
   const [users, setUsers] = useState([]);
+  const [currentMood, setCurrentMood] = useState(null);
+  const [moodConfidence, setMoodConfidence] = useState(0);
 
   const pcRef = useRef(null);
   const dcRef = useRef(null);
@@ -89,11 +91,11 @@ export default function App() {
             // threshold: 0.8,  // Higher threshold to reduce false triggers
             // silence_duration_ms: 1500,  // Longer silence before responding
             // prefix_padding_ms: 300
-            eagerness: "low"
+            eagerness: "low",
           },
           modalities: ["text", "audio"],
-          voice: "coral",   //Supported values are: 'alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', and 'verse'.
-          max_response_output_tokens: 1000,  // Allow longer AI responses
+          voice: "coral", //Supported values are: 'alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', and 'verse'.
+          max_response_output_tokens: 1000, // Allow longer AI responses
           instructions:
             "You are Drival, a personal driving assistant. Be brief and conversational. When users ask about their trips, use the get_driving_data function which returns COMPLETE data for each category (all trips, sorted newest first). Use this complete data to give accurate answers about counts, dates, and latest trips.",
         });
@@ -140,6 +142,32 @@ export default function App() {
                   required: ["userId", "category", "query"],
                 },
               },
+              {
+                type: "function",
+                name: "assess_user_mood",
+                description:
+                  "Analyzes the user's response to assess their current mood and adapts conversation tone accordingly. Use this when the user responds to mood-related questions.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    userId: {
+                      type: "string",
+                      description: "The ID of the user whose mood to assess",
+                      enum: ["user1", "user2"],
+                    },
+                    userResponse: {
+                      type: "string",
+                      description:
+                        "The user's response about how they're feeling or their current state",
+                    },
+                    sessionId: {
+                      type: "string",
+                      description: "Current session ID for mood tracking",
+                    },
+                  },
+                  required: ["userId", "userResponse", "sessionId"],
+                },
+              },
             ],
           });
         }, 1000);
@@ -165,6 +193,8 @@ export default function App() {
     setIsAISpeaking(false);
     setIsListening(false);
     setIsConnected(false);
+    setCurrentMood(null);
+    setMoodConfidence(0);
     setStatus("Disconnected");
   }
 
@@ -200,7 +230,7 @@ export default function App() {
         setStatus("AI speaking…");
         // Mute microphone during AI speech to prevent interruption
         if (micRef.current) {
-          micRef.current.getAudioTracks().forEach(track => {
+          micRef.current.getAudioTracks().forEach((track) => {
             track.enabled = false;
           });
         }
@@ -212,7 +242,7 @@ export default function App() {
         setStatus("Ready");
         // Re-enable microphone after AI finishes
         if (micRef.current) {
-          micRef.current.getAudioTracks().forEach(track => {
+          micRef.current.getAudioTracks().forEach((track) => {
             track.enabled = true;
           });
         }
@@ -236,7 +266,7 @@ export default function App() {
             console.error("❌ Missing call_id in function call event:", event);
             return;
           }
-          
+
           try {
             const args = JSON.parse(event.arguments || "{}");
             // Automatically inject the selected user ID
@@ -274,7 +304,9 @@ export default function App() {
               // Small delay to ensure function result is processed before response.create
               setTimeout(() => {
                 if (dcRef.current) {
-                  console.log("📤 Triggering model response after function result");
+                  console.log(
+                    "📤 Triggering model response after function result"
+                  );
                   sendResponseCreate(dcRef.current);
                 }
               }, 100);
@@ -290,7 +322,99 @@ export default function App() {
               // Small delay to ensure function result is processed before response.create
               setTimeout(() => {
                 if (dcRef.current) {
-                  console.log("📤 Triggering model response after error function result");
+                  console.log(
+                    "📤 Triggering model response after error function result"
+                  );
+                  sendResponseCreate(dcRef.current);
+                }
+              }, 100);
+            }
+          }
+        } else if (event.name === "assess_user_mood") {
+          // Validate that we have the required call_id
+          if (!event.call_id) {
+            console.error(
+              "❌ Missing call_id in mood assessment function call:",
+              event
+            );
+            return;
+          }
+
+          try {
+            const args = JSON.parse(event.arguments || "{}");
+            // Automatically inject the selected user ID and current session ID
+            args.userId = selectedUser;
+            args.sessionId = `session-${Date.now()}-${selectedUser}`; // Simple session ID
+            console.log("🧠 Calling mood assessment with args:", args);
+
+            const r = await fetch(`${BACKEND_URL}/api/tools/assess_user_mood`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(args),
+            });
+
+            if (!r.ok) {
+              const errorText = await r.text();
+              console.error(
+                "❌ Mood assessment backend call failed:",
+                r.status,
+                errorText
+              );
+              throw new Error(`Backend error: ${r.status} - ${errorText}`);
+            }
+
+            const result = await r.json();
+            console.log("✅ Mood assessment result:", result);
+            const { content, assessment, instructions } = result;
+
+            // Update mood state for UI display
+            if (assessment) {
+              setCurrentMood(assessment.mood);
+              setMoodConfidence(assessment.confidence);
+            }
+
+            // Update session with mood-based instructions if provided
+            if (instructions && dcRef.current) {
+              console.log("🔄 Updating session with mood-based instructions");
+              setTimeout(() => {
+                sendSessionUpdate(dcRef.current, {
+                  instructions: instructions,
+                });
+              }, 200);
+            }
+
+            // Send function result and then trigger model response
+            if (dcRef.current) {
+              console.log("📤 Sending mood assessment result back to model");
+              sendFunctionResult(
+                dcRef.current,
+                event.call_id,
+                content || "Mood assessed successfully"
+              );
+              // Small delay to ensure function result is processed before response.create
+              setTimeout(() => {
+                if (dcRef.current) {
+                  console.log(
+                    "📤 Triggering model response after mood assessment"
+                  );
+                  sendResponseCreate(dcRef.current);
+                }
+              }, 100);
+            }
+          } catch (e) {
+            console.error("❌ Mood assessment error:", e);
+            if (dcRef.current) {
+              sendFunctionResult(
+                dcRef.current,
+                event.call_id,
+                `I had trouble assessing your mood, but I'm here to help! Error: ${e.message}`
+              );
+              // Small delay to ensure function result is processed before response.create
+              setTimeout(() => {
+                if (dcRef.current) {
+                  console.log(
+                    "📤 Triggering model response after mood assessment error"
+                  );
                   sendResponseCreate(dcRef.current);
                 }
               }, 100);
@@ -410,22 +534,71 @@ export default function App() {
           <p className="mt-3 text-lg">{status}</p>
         </div>
 
+        {/* Mood Display */}
+        {currentMood && (
+          <div className="p-3 mb-4 bg-gray-800 rounded-lg border border-gray-700">
+            <div className="flex gap-2 justify-center items-center mb-2">
+              <span className="text-2xl">
+                {currentMood === "energetic"
+                  ? "⚡"
+                  : currentMood === "content"
+                  ? "😊"
+                  : currentMood === "neutral"
+                  ? "😐"
+                  : currentMood === "tired"
+                  ? "😴"
+                  : currentMood === "stressed"
+                  ? "😰"
+                  : "❓"}
+              </span>
+              <span className="text-sm font-medium text-gray-300 capitalize">
+                {currentMood}
+              </span>
+            </div>
+            <div className="text-xs text-gray-400">
+              Confidence: {Math.round(moodConfidence * 100)}%
+            </div>
+            <div
+              className={`overflow-hidden mt-1 w-full h-1 bg-gray-700 rounded`}
+            >
+              <div
+                className={`h-full transition-all duration-500 ${
+                  currentMood === "energetic"
+                    ? "bg-yellow-400"
+                    : currentMood === "content"
+                    ? "bg-green-400"
+                    : currentMood === "neutral"
+                    ? "bg-blue-400"
+                    : currentMood === "tired"
+                    ? "bg-purple-400"
+                    : currentMood === "stressed"
+                    ? "bg-red-400"
+                    : "bg-gray-400"
+                }`}
+                style={{ width: `${moodConfidence * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* User Selection Dropdown */}
         {!isConnected && users.length > 0 && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block mb-2 text-sm font-medium text-gray-300">
               Select User:
             </label>
             <select
               value={selectedUser}
               onChange={(e) => setSelectedUser(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 w-full text-white bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              {users && users.length > 0 ? users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                </option>
-              )) : (
+              {users && users.length > 0 ? (
+                users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))
+              ) : (
                 <option value="">Loading users...</option>
               )}
             </select>
