@@ -44,15 +44,28 @@ export const MoodDisplay: React.FC<MoodDisplayProps> = ({
                   style={{
                     width: `${moodConfidence * 100}%`,
                     boxShadow: `0 0 10px ${
-                      getMoodColor(currentMood).includes("yellow")
+                      // Enhanced glow colors for all 11 moods
+                      currentMood === "ecstatic"
                         ? "#fbbf24"
-                        : getMoodColor(currentMood).includes("green")
+                        : currentMood === "excited"
                         ? "#34d399"
-                        : getMoodColor(currentMood).includes("blue")
+                        : currentMood === "happy"
+                        ? "#34d399"
+                        : currentMood === "content"
+                        ? "#86efac"
+                        : currentMood === "neutral"
                         ? "#60a5fa"
-                        : getMoodColor(currentMood).includes("purple")
+                        : currentMood === "calm"
+                        ? "#93c5fd"
+                        : currentMood === "tired"
                         ? "#a78bfa"
-                        : getMoodColor(currentMood).includes("red")
+                        : currentMood === "sad"
+                        ? "#9ca3af"
+                        : currentMood === "frustrated"
+                        ? "#fb923c"
+                        : currentMood === "stressed"
+                        ? "#fca5a5"
+                        : currentMood === "angry"
                         ? "#f87171"
                         : "#9ca3af"
                     }40`,

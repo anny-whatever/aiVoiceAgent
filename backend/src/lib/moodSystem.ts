@@ -12,22 +12,31 @@ import {
 const activeSessions = new Map<string, UserSession>();
 
 /**
- * Analyzes user's response to assess their current mood using AI
- * This function is called by the AI agent tool
+ * Analyzes user's response to assess their current mood using AI with tone analysis
+ * This function is called by the AI agent tool for both initial and continuous mood monitoring
  */
 export async function assessUserMood(
   userId: string,
   userResponse: string,
-  sessionId: string
+  sessionId: string,
+  previousMood?: UserMood
 ): Promise<MoodAssessment> {
   console.log(
     `🧠 AI Assessing mood for user ${userId}: "${userResponse.substring(
       0,
       100
-    )}..."`
+    )}..."${previousMood ? ` (Previous: ${previousMood})` : ""}`
   );
 
   try {
+    // Get current session to check for previous mood
+    const currentSession = getSessionData(userId, sessionId);
+    const currentMood = previousMood || currentSession?.currentMood?.mood;
+
+    const moodContext = currentMood
+      ? `The user's previous mood was "${currentMood}". Detect if their mood has changed or remains the same.`
+      : "This is the first mood assessment for this user in this session.";
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -39,36 +48,56 @@ export async function assessUserMood(
         messages: [
           {
             role: "system",
-            content: `You are an expert mood analyst. Analyze the user's response and determine their emotional state.
+            content: `You are an expert mood analyst with advanced tone detection capabilities. Analyze both the SEMANTIC content and IMPLIED TONE of the user's response to determine their emotional state.
 
 AVAILABLE MOODS (choose exactly one):
-- energetic: High energy, enthusiastic, upbeat, excited, pumped
-- content: Balanced, positive, satisfied, good, fine, nice, happy, pleasant
-- neutral: Baseline, standard, no strong emotion, just okay, nothing special
-- tired: Low energy, subdued, fatigued, exhausted, drained, sleepy
-- stressed: Anxious, overwhelmed, tense, worried, frantic, pressured
+- ecstatic: Over the moon, thrilled, euphoric, extremely happy, beyond excited
+- excited: High energy, enthusiastic, pumped, eager, very positive
+- happy: Joyful, cheerful, upbeat, pleased, good spirits
+- content: Satisfied, peaceful, balanced, good, fine, comfortable
+- neutral: Baseline, standard, no strong emotion, just okay
+- calm: Relaxed, serene, composed, tranquil, at peace
+- tired: Fatigued, drained, low energy, weary, exhausted
+- sad: Down, melancholy, unhappy, disappointed, blue
+- frustrated: Annoyed, irritated, blocked, impatient, stuck
+- stressed: Anxious, overwhelmed, pressured, tense, worried
+- angry: Mad, furious, rage, hostile, very upset
 
-IMPORTANT INSTRUCTIONS:
-1. Analyze the SEMANTIC meaning, not just keywords
-2. Consider context, tone, and implied emotions
-3. Return a confidence score from 0.0 to 1.0 (be realistic, not always high)
-4. Provide a brief reasoning for your choice
-5. Even subtle mood expressions should be detected (like "I'm good" = content)
+TONE ANALYSIS INSTRUCTIONS:
+1. Analyze SEMANTIC meaning (words, phrases, context)
+2. Detect IMPLIED TONE (energy level, emotional undertones, speech patterns)
+3. Consider vocal patterns if this were spoken (pace, emphasis, emotional inflection)
+4. Look for emotional shifts or changes from previous interactions
+5. Detect subtle emotions (e.g., "whatever" might indicate frustration, "sure" might be sad/tired)
+6. Consider context clues and subtext
+
+MOOD CHANGE DETECTION:
+${moodContext}
+- If mood seems to have changed, choose the NEW mood with appropriate confidence
+- If mood appears stable, confirm the current mood
+- Be sensitive to even subtle emotional shifts
+
+CONFIDENCE SCORING:
+- 0.9-1.0: Very clear emotional indicators
+- 0.7-0.8: Good evidence with some uncertainty
+- 0.5-0.6: Moderate indicators, could be multiple moods
+- 0.3-0.4: Weak signals, best guess
+- 0.1-0.2: Very uncertain, minimal indicators
 
 Respond ONLY with a JSON object in this exact format:
 {
-  "mood": "one_of_the_five_moods",
+  "mood": "one_of_the_eleven_moods",
   "confidence": 0.75,
-  "reasoning": "Brief explanation of why you chose this mood"
+  "reasoning": "Brief explanation of semantic and tone analysis"
 }`,
           },
           {
             role: "user",
-            content: `Analyze this user response for mood: "${userResponse}"`,
+            content: `Analyze this user response for mood (both semantic content and implied tone): "${userResponse}"`,
           },
         ],
         temperature: 0.1,
-        max_tokens: 150,
+        max_tokens: 200,
       }),
     });
 
@@ -98,12 +127,21 @@ Respond ONLY with a JSON object in this exact format:
     const assessment: MoodAssessment = {
       mood: moodAnalysis.mood as UserMood,
       confidence,
-      reasoning: moodAnalysis.reasoning || "AI mood analysis",
+      reasoning: moodAnalysis.reasoning || "AI mood and tone analysis",
       timestamp: new Date().toISOString(),
     };
 
     // Store in session
     updateSessionMood(userId, sessionId, assessment);
+
+    // Log mood changes
+    if (currentMood && currentMood !== assessment.mood) {
+      console.log(
+        `🔄 Mood change detected: ${currentMood} → ${
+          assessment.mood
+        } (confidence: ${confidence.toFixed(2)})`
+      );
+    }
 
     console.log(
       `✅ AI Mood assessed: ${

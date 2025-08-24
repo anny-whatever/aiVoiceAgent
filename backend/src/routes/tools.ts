@@ -134,33 +134,94 @@ router.get("/session/:userId/:sessionId/mood", (req, res) => {
   }
 });
 
-/** Simple self test */
+/** Enhanced mood system test with full spectrum */
 router.get("/tools/test", async (_req, res) => {
   try {
     const test = findRelevantTripData("user1", "work_commute", "office");
-    const moodTest1 = await assessUserMood(
-      "user1",
-      "I'm feeling great today!",
-      "test-session-1"
-    );
-    const moodTest2 = await assessUserMood(
-      "user1",
-      "I am feeling nice, can you please tell me about my last errand run",
-      "test-session-2"
-    );
-    const moodTest3 = await assessUserMood(
-      "user1",
-      "I'm good but can you please tell me about my recent trips",
-      "test-session-3"
-    );
+
+    // Test the full 11-mood spectrum with tone analysis
+    const moodTests = {
+      ecstatic: await assessUserMood(
+        "user1",
+        "OMG this is AMAZING!! I'm so thrilled!!",
+        "test-1"
+      ),
+      excited: await assessUserMood(
+        "user1",
+        "I'm pumped for this drive!",
+        "test-2"
+      ),
+      happy: await assessUserMood(
+        "user1",
+        "I'm feeling wonderful today!",
+        "test-3"
+      ),
+      content: await assessUserMood(
+        "user1",
+        "I'm good, tell me about my trips",
+        "test-4"
+      ),
+      neutral: await assessUserMood(
+        "user1",
+        "Just need directions to downtown",
+        "test-5"
+      ),
+      calm: await assessUserMood(
+        "user1",
+        "I'm feeling peaceful and relaxed",
+        "test-6"
+      ),
+      tired: await assessUserMood(
+        "user1",
+        "Ugh I'm so exhausted from work",
+        "test-7"
+      ),
+      sad: await assessUserMood(
+        "user1",
+        "I'm feeling pretty down today",
+        "test-8"
+      ),
+      frustrated: await assessUserMood(
+        "user1",
+        "This traffic is so annoying",
+        "test-9"
+      ),
+      stressed: await assessUserMood(
+        "user1",
+        "I'm really anxious about being late",
+        "test-10"
+      ),
+      angry: await assessUserMood(
+        "user1",
+        "I'm furious about this situation!",
+        "test-11"
+      ),
+
+      // Test subtle tone detection
+      subtle_frustrated: await assessUserMood(
+        "user1",
+        "Whatever, just tell me the route",
+        "test-12"
+      ),
+      subtle_tired: await assessUserMood(
+        "user1",
+        "Sure... I guess that works",
+        "test-13"
+      ),
+      mood_change: await assessUserMood(
+        "user1",
+        "Actually this is getting really frustrating",
+        "test-14",
+        UserMood.CONTENT
+      ),
+    };
+
     res.json({
       status: "ok",
       tripDataTest: test.substring(0, 100) + "...",
-      moodTests: {
-        "feeling great": moodTest1,
-        "feeling nice": moodTest2,
-        "i'm good": moodTest3,
-      },
+      moodSystemVersion: "2.0 - Full Spectrum with Tone Analysis",
+      totalMoods: 11,
+      moodTests,
     });
   } catch (e: any) {
     res
