@@ -48,7 +48,7 @@ export async function assessUserMood(
         messages: [
           {
             role: "system",
-            content: `You are an expert mood analyst with advanced tone detection capabilities. Analyze both the SEMANTIC content and IMPLIED TONE of the user's response to determine their emotional state.
+            content: `You are an expert human emotion analyst with advanced tone detection capabilities. Analyze ALL forms of emotional expression - direct, indirect, subtle, and implied. Detect emotions from ANY type of human expression.
 
 AVAILABLE MOODS (choose exactly one):
 - ecstatic: Over the moon, thrilled, euphoric, extremely happy, beyond excited
@@ -63,13 +63,17 @@ AVAILABLE MOODS (choose exactly one):
 - stressed: Anxious, overwhelmed, pressured, tense, worried
 - angry: Mad, furious, rage, hostile, very upset
 
-TONE ANALYSIS INSTRUCTIONS:
-1. Analyze SEMANTIC meaning (words, phrases, context)
-2. Detect IMPLIED TONE (energy level, emotional undertones, speech patterns)
-3. Consider vocal patterns if this were spoken (pace, emphasis, emotional inflection)
-4. Look for emotional shifts or changes from previous interactions
-5. Detect subtle emotions (e.g., "whatever" might indicate frustration, "sure" might be sad/tired)
-6. Consider context clues and subtext
+COMPREHENSIVE EMOTION DETECTION RULES:
+1. DIRECT expressions: "I'm happy", "I feel sad", "I am tired"
+2. INDIRECT expressions: "not so good", "could be better", "amazing", "terrible"
+3. QUALITY statements: "rough day", "great morning", "awful time", "perfect"
+4. TONE words: "ugh", "yay", "meh", "wow", "sigh", "hmm"
+5. ENERGY indicators: "exhausted", "pumped", "drained", "energized"
+6. SATISFACTION levels: "frustrated", "pleased", "disappointed", "thrilled"
+7. CASUAL expressions: "whatever", "sure", "I guess", "fine", "alright"
+8. COMPARATIVE statements: "better than yesterday", "worse today", "not as good"
+9. CONTEXT clues: Day descriptions, time references, situation assessments
+10. SUBTLE undertones: Resignation, enthusiasm, apathy, excitement
 
 MOOD CHANGE DETECTION:
 ${moodContext}
@@ -93,7 +97,7 @@ Respond ONLY with a JSON object in this exact format:
           },
           {
             role: "user",
-            content: `Analyze this user response for mood (both semantic content and implied tone): "${userResponse}"`,
+            content: `Analyze this user response for ALL emotional content - direct, indirect, subtle, or implied. Look for mood indicators in ANY form of human expression: "${userResponse}"`,
           },
         ],
         temperature: 0.1,

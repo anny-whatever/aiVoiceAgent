@@ -120,9 +120,13 @@ export const useWebRTC = () => {
 
       dc.onopen = () => {
         setIsConnected(true);
-        setStatus("Connected — AI is greeting you!");
+        setStatus("Connected — Setting up AI...");
 
-        console.log("🔧 Sending basic session update...");
+        // Find the actual user name from users array
+        const currentUser = users.find((user) => user.id === selectedUser);
+        const userName = currentUser ? currentUser.name : selectedUser;
+
+        console.log("🔧 Configuring session with tools...");
         sendSessionUpdate(dc, {
           turn_detection: {
             type: "semantic_vad",
@@ -131,112 +135,155 @@ export const useWebRTC = () => {
           modalities: ["text", "audio"],
           voice: "coral",
           max_response_output_tokens: 1000,
-          instructions:
-            "You are Drival, a personal driving assistant. Be brief and conversational. IMPORTANT: As soon as the session starts, you must greet the user by name and ask about their mood. Always use the user's name in greetings. CONTINUOUS MOOD MONITORING: You must AUTOMATICALLY and SILENTLY monitor the user's mood throughout EVERY conversation without asking them about it. For EVERY user response, analyze their tone, energy, and emotional state, then call the assess_user_mood function if you detect ANY emotional indicators or mood changes. Never explicitly ask 'How are you feeling?' after the initial greeting - just detect mood changes naturally from their responses. MULTI-TOOL CALLS: If they mention other topics along with mood indicators, call MULTIPLE tools - assess_user_mood FIRST, then other tools. Examples: 'Ugh, tell me about my trips' = call assess_user_mood (detecting frustration) AND get_driving_data. When users ask about trips, use get_driving_data which returns COMPLETE data. ADAPT YOUR TONE: Once mood is detected, adapt your conversation style to match their emotional state appropriately.",
+          tool_choice: "auto",
+          instructions: `You are Drival, a personal driving assistant for ${userName}. Be brief and conversational.
+
+CRITICAL FUNCTION USAGE RULES - DETECT ALL HUMAN EMOTIONAL EXPRESSIONS:
+1. CALL assess_user_mood for ANY emotional content - direct, indirect, subtle, or implied
+2. CALL it for tone indicators, energy levels, satisfaction levels, day quality, or ANY emotional state
+3. CALL it for positive, negative, neutral expressions - ALL emotional content
+4. CALL it for questions about feelings AND responses about feelings
+5. For trip-related questions, use get_driving_data
+6. You can call MULTIPLE functions in one response if needed
+
+MANDATORY DETECTION OF ALL EMOTIONAL EXPRESSIONS:
+- Direct: "I'm feeling happy", "I am sad", "I feel tired"
+- Indirect: "not so good", "could be better", "amazing day", "rough morning"
+- Quality statements: "great day", "terrible time", "awful", "wonderful", "okay", "fine"
+- Tone words: "ugh", "yay", "meh", "wow", "sigh", "hmm"
+- Energy indicators: "exhausted", "pumped", "drained", "energized", "sluggish"
+- Satisfaction levels: "frustrated", "pleased", "disappointed", "thrilled", "annoyed"
+- Day/time descriptions: "rough day", "good morning", "bad start", "perfect evening"
+- Comparative statements: "better than yesterday", "worse today", "not as good"
+- Casual expressions: "whatever", "sure", "I guess", "fine", "alright"
+
+EXAMPLES OF WHEN TO CALL assess_user_mood (COMPREHENSIVE LIST):
+- "I'm feeling great!" → CALL assess_user_mood
+- "not so good so far" → CALL assess_user_mood  
+- "could be better" → CALL assess_user_mood
+- "rough day" → CALL assess_user_mood
+- "amazing!" → CALL assess_user_mood
+- "terrible" → CALL assess_user_mood
+- "I'm tired" → CALL assess_user_mood
+- "exhausted" → CALL assess_user_mood
+- "ugh" → CALL assess_user_mood
+- "yay!" → CALL assess_user_mood
+- "whatever" → CALL assess_user_mood
+- "fine" → CALL assess_user_mood
+- "okay" → CALL assess_user_mood
+- "awful traffic" → CALL assess_user_mood
+- "love this song" → CALL assess_user_mood
+- "hate waiting" → CALL assess_user_mood
+- ANY word that indicates emotional state → CALL assess_user_mood
+
+CONVERSATION FLOW:
+1. Greet ${userName} by name and ask SPECIFICALLY about their mood/feelings (e.g., "How are you feeling today?", "What's your mood like right now?", "How are you doing emotionally today?")
+2. When they respond about mood, IMMEDIATELY call assess_user_mood function
+3. Adapt your tone based on the mood assessment result
+4. Continue helping with driving assistance
+5. CONSTANTLY monitor for mood changes - if they mention ANY new feeling, call assess_user_mood again
+6. Always update your communication style based on the most recent mood assessment
+
+INITIAL GREETING EXAMPLES:
+- "Hi ${userName}! How are you feeling today?"
+- "Hello ${userName}! What's your mood like right now?"
+- "Hey ${userName}! How are you doing emotionally today?"
+- "Hi there ${userName}! How's your emotional state today?"
+DO NOT ask about "how the day is going" - ask specifically about FEELINGS and MOOD.
+
+You MUST use the available functions when appropriate. Mood can change during conversations - always stay alert for emotional content.`,
+          tools: [
+            {
+              type: "function",
+              name: "assess_user_mood",
+              description:
+                "MANDATORY: Call this function for ALL emotional expressions - direct ('I'm happy'), indirect ('not so good'), quality statements ('terrible day'), tone words ('ugh'), energy levels ('exhausted'), satisfaction ('frustrated'), or ANY emotional content. Detect subtle emotions, casual expressions, day descriptions, and implied feelings. This includes positive, negative, and neutral emotional indicators. Call for EVERY emotional expression throughout the conversation.",
+              parameters: {
+                type: "object",
+                properties: {
+                  userId: {
+                    type: "string",
+                    description: "The ID of the user whose mood to assess",
+                    enum: ["user1", "user2"],
+                  },
+                  userResponse: {
+                    type: "string",
+                    description:
+                      "The exact text of the user's response containing ANY emotional content - direct ('I'm happy'), indirect ('not so good so far'), quality statements ('terrible day'), tone words ('ugh'), energy indicators ('exhausted'), satisfaction levels ('frustrated'), or any emotional expression",
+                  },
+                  sessionId: {
+                    type: "string",
+                    description: "Current session ID for mood tracking",
+                  },
+                },
+                required: ["userId", "userResponse", "sessionId"],
+              },
+            },
+            {
+              type: "function",
+              name: "get_driving_data",
+              description:
+                "Get complete trip data for a category when user asks about their trips, routes, or driving history.",
+              parameters: {
+                type: "object",
+                properties: {
+                  userId: {
+                    type: "string",
+                    description: "The ID of the user whose data to retrieve",
+                    enum: ["user1", "user2"],
+                  },
+                  category: {
+                    type: "string",
+                    enum: [
+                      "work_commute",
+                      "errands_shopping",
+                      "social_visits",
+                      "entertainment_dining",
+                      "weekend_trips",
+                      "medical_appointments",
+                      "general",
+                    ],
+                    description: "Category of trip data to retrieve",
+                  },
+                  query: {
+                    type: "string",
+                    description: "Description of what the user is asking about",
+                  },
+                },
+                required: ["userId", "category", "query"],
+              },
+            },
+          ],
         });
 
-        // Add tools configuration
+        // Wait for session update to be processed, then start conversation
         setTimeout(() => {
-          console.log("🔧 Adding tools configuration...");
-          sendSessionUpdate(dc, {
-            tool_choice: "auto",
-            tools: [
-              {
-                type: "function",
-                name: "get_driving_data",
-                description:
-                  "Get complete trip data for a category. Returns ALL trips in that category sorted by date (newest first), giving you full context to answer accurately.",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    userId: {
-                      type: "string",
-                      description: "The ID of the user whose data to retrieve",
-                      enum: ["user1", "user2"],
-                    },
-                    category: {
-                      type: "string",
-                      enum: [
-                        "work_commute",
-                        "errands_shopping",
-                        "social_visits",
-                        "entertainment_dining",
-                        "weekend_trips",
-                        "medical_appointments",
-                        "general",
-                      ],
-                      description:
-                        "Category of trip data to retrieve - you'll get ALL trips in this category",
-                    },
-                    query: {
-                      type: "string",
-                      description:
-                        "Description of what the user is asking about (the query parameter is required but the function returns complete data regardless)",
-                    },
-                  },
-                  required: ["userId", "category", "query"],
-                },
-              },
-              {
-                type: "function",
-                name: "assess_user_mood",
-                description:
-                  "CRITICAL: Call this function for EVERY user response to continuously monitor their emotional state and tone. Analyzes 11 moods: ecstatic, excited, happy, content, neutral, calm, tired, sad, frustrated, stressed, angry. Detects both explicit mood expressions AND subtle emotional undertones. Must be called FIRST if any emotional indicators are present, even subtle ones like 'whatever', 'sure', 'ugh', changes in energy, or shifts in tone. Enables continuous mood tracking throughout the conversation.",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    userId: {
-                      type: "string",
-                      description: "The ID of the user whose mood to assess",
-                      enum: ["user1", "user2"],
-                    },
-                    userResponse: {
-                      type: "string",
-                      description:
-                        "The user's response about how they're feeling or their current state",
-                    },
-                    sessionId: {
-                      type: "string",
-                      description: "Current session ID for mood tracking",
-                    },
-                  },
-                  required: ["userId", "userResponse", "sessionId"],
-                },
-              },
-            ],
-          });
+          setStatus("Ready — AI is greeting you!");
+          console.log("🔧 Triggering initial AI greeting...");
 
-          // Send automatic initial greeting after tools are configured
+          // Create a system message to start the conversation
+          dc.send(
+            JSON.stringify({
+              type: "conversation.item.create",
+              item: {
+                type: "message",
+                role: "user",
+                content: [
+                  {
+                    type: "input_text",
+                    text: `Hello! I'm ${userName} and I'm ready to chat with my driving assistant.`,
+                  },
+                ],
+              },
+            })
+          );
+
+          // Trigger AI response
           setTimeout(() => {
-            console.log("🔧 Sending initial greeting...");
-
-            // Find the actual user name from users array
-            const currentUser = users.find((user) => user.id === selectedUser);
-            const userName = currentUser ? currentUser.name : selectedUser;
-
-            // Create conversation item to trigger AI greeting
-            dc.send(
-              JSON.stringify({
-                type: "conversation.item.create",
-                item: {
-                  type: "message",
-                  role: "user",
-                  content: [
-                    {
-                      type: "input_text",
-                      text: `SYSTEM: Start the conversation by greeting ${userName} by their name and asking about their mood. Use a warm, friendly tone.`,
-                    },
-                  ],
-                },
-              })
-            );
-
-            // Trigger AI response
-            setTimeout(() => {
-              sendResponseCreate(dc);
-            }, 100);
-          }, 500);
-        }, 1000);
+            console.log("🔧 Requesting AI response...");
+            sendResponseCreate(dc);
+          }, 200);
+        }, 1500);
       };
     },
     [setIsConnected, setStatus]
