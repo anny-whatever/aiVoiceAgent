@@ -34,14 +34,18 @@ try {
 }
 
 // Find relevant trip data for a specific user
-const findRelevantTripData = (userId: string, category: string, query: string) => {
+const findRelevantTripData = (
+  userId: string,
+  category: string,
+  query: string
+) => {
   // Validate user exists
   if (!multiUserDrivingData.users[userId]) {
     throw new Error(`User ${userId} not found`);
   }
 
   const userData = multiUserDrivingData.users[userId];
-  
+
   const categoryMap: { [key: string]: string } = {
     work_commute: "work_commute",
     errands_shopping: "errands_shopping",
@@ -129,9 +133,9 @@ app.get("/health", (req: Request, res: Response) => {
 // Get available users
 app.get("/api/users", (req: Request, res: Response) => {
   try {
-    const users = Object.keys(multiUserDrivingData.users).map(userId => ({
+    const users = Object.keys(multiUserDrivingData.users).map((userId) => ({
       id: userId,
-      name: multiUserDrivingData.users[userId].name
+      name: multiUserDrivingData.users[userId].name,
     }));
     res.json({ users });
   } catch (error) {
@@ -154,7 +158,7 @@ app.post("/api/session", async (req: Request, res: Response) => {
     }
 
     const { userId } = req.body;
-    
+
     if (!userId) {
       return res.status(400).json({
         error: "Missing userId",
@@ -170,7 +174,16 @@ app.post("/api/session", async (req: Request, res: Response) => {
     }
 
     const userData = multiUserDrivingData.users[userId];
-    const userInstructions = `${userData.systemPrompt}\n\n${userData.instructions}\n\nYou can discuss work commutes, errands & shopping trips, social visits, entertainment & dining, weekend trips, and medical appointments. Keep responses conversational, personal, and insightful.\n\nFor general greetings, respond naturally and introduce yourself as Drival, ${userData.name}'s personal driving assistant who knows their travel patterns.`;
+    const userInstructions = `${userData.systemPrompt}\n\n${userData.instructions}\n\nYou can discuss work commutes, errands & shopping trips, social visits, entertainment & dining, weekend trips, and medical appointments. Keep responses conversational, personal, and insightful.\n\nUser's name: ${userData.name}\nUser ID: ${userId}\n\nIMPORTANT: Always greet the user by their name (${userData.name}) when starting conversations and ask about their mood. 
+
+CRITICAL MOOD DETECTION: When users express ANY feelings or emotional state (including words like: good, nice, fine, great, awesome, okay, alright, well, tired, stressed, excited, happy, sad, etc.), you MUST call the assess_user_mood function IMMEDIATELY, regardless of what else they say in the same message.
+
+MULTI-TOOL CALLS: If users mention both mood AND other topics in one response (like "I'm good, tell me about my trips"), call MULTIPLE tools:
+1. FIRST call assess_user_mood for the mood part
+2. THEN call get_driving_data for the trip information
+3. Provide a response that addresses both topics
+
+For general greetings, respond naturally and introduce yourself as Drival, ${userData.name}'s personal driving assistant who knows their travel patterns.`;
 
     const response = await fetch(
       "https://api.openai.com/v1/realtime/sessions",
@@ -230,7 +243,11 @@ app.post("/api/tools/get_driving_data", (req: Request, res: Response) => {
   const { userId, category, query } = req.body;
 
   if (!userId || !category || !query) {
-    console.error("❌ Missing required parameters:", { userId, category, query });
+    console.error("❌ Missing required parameters:", {
+      userId,
+      category,
+      query,
+    });
     return res.status(400).json({
       error: "UserId, category and query parameters are required",
       received: req.body,
@@ -261,7 +278,11 @@ app.get("/api/tools/test", (req: Request, res: Response) => {
   try {
     // Use the first available user for testing
     const firstUserId = Object.keys(multiUserDrivingData.users)[0];
-    const testResult = findRelevantTripData(firstUserId, "work_commute", "downtown office");
+    const testResult = findRelevantTripData(
+      firstUserId,
+      "work_commute",
+      "downtown office"
+    );
     res.json({
       status: "success",
       testResult: testResult,
@@ -280,16 +301,21 @@ app.get("/api/agent", (req: Request, res: Response) => {
   const totalTrips = multiUserDrivingData?.users
     ? Object.values(multiUserDrivingData.users).reduce(
         (sum: number, user: any) => {
-          return sum + Object.values(user.tripData).reduce(
-            (userSum: number, category: any) => userSum + category.length,
-            0
+          return (
+            sum +
+            Object.values(user.tripData).reduce(
+              (userSum: number, category: any) => userSum + category.length,
+              0
+            )
           );
         },
         0
       )
     : 0;
 
-  const totalUsers = multiUserDrivingData?.users ? Object.keys(multiUserDrivingData.users).length : 0;
+  const totalUsers = multiUserDrivingData?.users
+    ? Object.keys(multiUserDrivingData.users).length
+    : 0;
 
   res.json({
     name: "Drival",

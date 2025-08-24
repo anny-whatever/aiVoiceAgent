@@ -59,7 +59,7 @@ router.post("/tools/get_driving_data", (req, res) => {
 });
 
 /** Mood assessment tool endpoint - called by AI agent */
-router.post("/tools/assess_user_mood", (req, res) => {
+router.post("/tools/assess_user_mood", async (req, res) => {
   console.log("🧠 Mood assessment tool called:", req.body);
 
   const { userId, userResponse, sessionId } = req.body || {};
@@ -77,7 +77,11 @@ router.post("/tools/assess_user_mood", (req, res) => {
   }
 
   try {
-    const moodAssessment = assessUserMood(userId, userResponse, sessionId);
+    const moodAssessment = await assessUserMood(
+      userId,
+      userResponse,
+      sessionId
+    );
     const moodInstructions = generateMoodInstructions(moodAssessment.mood);
 
     console.log(
@@ -131,18 +135,32 @@ router.get("/session/:userId/:sessionId/mood", (req, res) => {
 });
 
 /** Simple self test */
-router.get("/tools/test", (_req, res) => {
+router.get("/tools/test", async (_req, res) => {
   try {
     const test = findRelevantTripData("user1", "work_commute", "office");
-    const moodTest = assessUserMood(
+    const moodTest1 = await assessUserMood(
       "user1",
       "I'm feeling great today!",
-      "test-session"
+      "test-session-1"
+    );
+    const moodTest2 = await assessUserMood(
+      "user1",
+      "I am feeling nice, can you please tell me about my last errand run",
+      "test-session-2"
+    );
+    const moodTest3 = await assessUserMood(
+      "user1",
+      "I'm good but can you please tell me about my recent trips",
+      "test-session-3"
     );
     res.json({
       status: "ok",
       tripDataTest: test.substring(0, 100) + "...",
-      moodTest: moodTest,
+      moodTests: {
+        "feeling great": moodTest1,
+        "feeling nice": moodTest2,
+        "i'm good": moodTest3,
+      },
     });
   } catch (e: any) {
     res

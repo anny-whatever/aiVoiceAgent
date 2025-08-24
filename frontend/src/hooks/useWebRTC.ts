@@ -1,6 +1,10 @@
 import { useRef, useState, useCallback } from "react";
 import { WebRTCRefs, ConnectionStatus } from "../types";
-import { connectRealtime, sendSessionUpdate } from "../webrtc";
+import {
+  connectRealtime,
+  sendSessionUpdate,
+  sendResponseCreate,
+} from "../webrtc";
 import { ApiService } from "../services/api";
 
 export const useWebRTC = () => {
@@ -109,14 +113,14 @@ export const useWebRTC = () => {
   }, []);
 
   const setupSession = useCallback(
-    (selectedUser: string) => {
+    (selectedUser: string, users: any[]) => {
       if (!dcRef.current) return;
 
       const dc = dcRef.current;
 
       dc.onopen = () => {
         setIsConnected(true);
-        setStatus("Connected — say hello!");
+        setStatus("Connected — AI is greeting you!");
 
         console.log("🔧 Sending basic session update...");
         sendSessionUpdate(dc, {
@@ -128,7 +132,7 @@ export const useWebRTC = () => {
           voice: "coral",
           max_response_output_tokens: 1000,
           instructions:
-            "You are Drival, a personal driving assistant. Be brief and conversational. When users ask about their trips, use the get_driving_data function which returns COMPLETE data for each category (all trips, sorted newest first). Use this complete data to give accurate answers about counts, dates, and latest trips.",
+            "You are Drival, a personal driving assistant. Be brief and conversational. IMPORTANT: As soon as the session starts, you must greet the user by name and ask about their mood. Always use the user's name in greetings. CRITICAL MOOD DETECTION: When users express ANY feelings or emotional state (like 'good', 'nice', 'fine', 'great', 'okay', 'tired', 'stressed', etc.), ALWAYS call the assess_user_mood function FIRST, regardless of what else they say. If they mention other topics in the same response (like asking about trips), call MULTIPLE tools in sequence - mood first, then other tools. Examples: 'I'm good, tell me about my trips' = call assess_user_mood AND get_driving_data. When users ask about their trips, use the get_driving_data function which returns COMPLETE data for each category (all trips, sorted newest first). Use this complete data to give accurate answers about counts, dates, and latest trips.",
         });
 
         // Add tools configuration
@@ -177,7 +181,7 @@ export const useWebRTC = () => {
                 type: "function",
                 name: "assess_user_mood",
                 description:
-                  "Analyzes the user's response to assess their current mood and adapts conversation tone accordingly. Use this when the user responds to mood-related questions.",
+                  "CRITICAL: Call this function IMMEDIATELY when users express ANY emotional state or feeling, regardless of what else they say. This includes words like: good, nice, fine, great, awesome, okay, alright, well, tired, stressed, excited, happy, sad, angry, frustrated, etc. Always call this FIRST before any other tools when mood is expressed.",
                 parameters: {
                   type: "object",
                   properties: {
@@ -201,6 +205,37 @@ export const useWebRTC = () => {
               },
             ],
           });
+
+          // Send automatic initial greeting after tools are configured
+          setTimeout(() => {
+            console.log("🔧 Sending initial greeting...");
+
+            // Find the actual user name from users array
+            const currentUser = users.find((user) => user.id === selectedUser);
+            const userName = currentUser ? currentUser.name : selectedUser;
+
+            // Create conversation item to trigger AI greeting
+            dc.send(
+              JSON.stringify({
+                type: "conversation.item.create",
+                item: {
+                  type: "message",
+                  role: "user",
+                  content: [
+                    {
+                      type: "input_text",
+                      text: `SYSTEM: Start the conversation by greeting ${userName} by their name and asking about their mood. Use a warm, friendly tone.`,
+                    },
+                  ],
+                },
+              })
+            );
+
+            // Trigger AI response
+            setTimeout(() => {
+              sendResponseCreate(dc);
+            }, 100);
+          }, 500);
         }, 1000);
       };
     },

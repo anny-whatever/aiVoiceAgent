@@ -12,223 +12,120 @@ import {
 const activeSessions = new Map<string, UserSession>();
 
 /**
- * Analyzes user's response to assess their current mood
+ * Analyzes user's response to assess their current mood using AI
  * This function is called by the AI agent tool
  */
-export function assessUserMood(
+export async function assessUserMood(
   userId: string,
   userResponse: string,
   sessionId: string
-): MoodAssessment {
+): Promise<MoodAssessment> {
   console.log(
-    `🧠 Assessing mood for user ${userId}: "${userResponse.substring(
+    `🧠 AI Assessing mood for user ${userId}: "${userResponse.substring(
       0,
       100
     )}..."`
   );
 
-  // Normalize the response for analysis
-  const response = userResponse.toLowerCase().trim();
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert mood analyst. Analyze the user's response and determine their emotional state.
 
-  // Mood detection logic based on keywords, tone, and patterns
-  let detectedMood: UserMood;
-  let confidence: number;
-  let reasoning: string;
+AVAILABLE MOODS (choose exactly one):
+- energetic: High energy, enthusiastic, upbeat, excited, pumped
+- content: Balanced, positive, satisfied, good, fine, nice, happy, pleasant
+- neutral: Baseline, standard, no strong emotion, just okay, nothing special
+- tired: Low energy, subdued, fatigued, exhausted, drained, sleepy
+- stressed: Anxious, overwhelmed, tense, worried, frantic, pressured
 
-  // Energetic indicators
-  const energeticKeywords = [
-    "amazing",
-    "fantastic",
-    "excited",
-    "great",
-    "awesome",
-    "wonderful",
-    "excellent",
-    "pumped",
-    "ready",
-    "energized",
-  ];
-  const energeticPhrases = [
-    "feeling great",
-    "really good",
-    "super excited",
-    "can't wait",
-  ];
+IMPORTANT INSTRUCTIONS:
+1. Analyze the SEMANTIC meaning, not just keywords
+2. Consider context, tone, and implied emotions
+3. Return a confidence score from 0.0 to 1.0 (be realistic, not always high)
+4. Provide a brief reasoning for your choice
+5. Even subtle mood expressions should be detected (like "I'm good" = content)
 
-  // Content indicators
-  const contentKeywords = [
-    "good",
-    "fine",
-    "well",
-    "nice",
-    "pleasant",
-    "okay",
-    "alright",
-    "satisfied",
-    "happy",
-  ];
-  const contentPhrases = ["pretty good", "doing well", "not bad", "quite nice"];
+Respond ONLY with a JSON object in this exact format:
+{
+  "mood": "one_of_the_five_moods",
+  "confidence": 0.75,
+  "reasoning": "Brief explanation of why you chose this mood"
+}`,
+          },
+          {
+            role: "user",
+            content: `Analyze this user response for mood: "${userResponse}"`,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 150,
+      }),
+    });
 
-  // Tired indicators
-  const tiredKeywords = [
-    "tired",
-    "exhausted",
-    "sleepy",
-    "drained",
-    "weary",
-    "fatigue",
-    "worn out",
-    "beat",
-  ];
-  const tiredPhrases = [
-    "feeling tired",
-    "so tired",
-    "really exhausted",
-    "need rest",
-  ];
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
 
-  // Stressed indicators
-  const stressedKeywords = [
-    "stressed",
-    "anxious",
-    "worried",
-    "overwhelmed",
-    "pressure",
-    "hectic",
-    "crazy",
-    "frantic",
-    "rushed",
-  ];
-  const stressedPhrases = [
-    "so much to do",
-    "running late",
-    "really stressed",
-    "feeling overwhelmed",
-  ];
+    const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content;
 
-  // Neutral indicators
-  const neutralKeywords = [
-    "okay",
-    "fine",
-    "normal",
-    "usual",
-    "regular",
-    "standard",
-  ];
-  const neutralPhrases = ["just okay", "nothing special", "same as usual"];
+    if (!aiResponse) {
+      throw new Error("No response from AI");
+    }
 
-  // Count matches and analyze patterns
-  const energeticMatches =
-    energeticKeywords.filter((word) => response.includes(word)).length +
-    energeticPhrases.filter((phrase) => response.includes(phrase)).length;
+    // Parse AI response
+    const moodAnalysis = JSON.parse(aiResponse);
 
-  const contentMatches =
-    contentKeywords.filter((word) => response.includes(word)).length +
-    contentPhrases.filter((phrase) => response.includes(phrase)).length;
+    // Validate the mood is one of our enums
+    const validMoods = Object.values(UserMood);
+    if (!validMoods.includes(moodAnalysis.mood)) {
+      throw new Error(`Invalid mood returned: ${moodAnalysis.mood}`);
+    }
 
-  const tiredMatches =
-    tiredKeywords.filter((word) => response.includes(word)).length +
-    tiredPhrases.filter((phrase) => response.includes(phrase)).length;
+    // Ensure confidence is within bounds
+    const confidence = Math.max(0, Math.min(1, moodAnalysis.confidence));
 
-  const stressedMatches =
-    stressedKeywords.filter((word) => response.includes(word)).length +
-    stressedPhrases.filter((phrase) => response.includes(phrase)).length;
+    const assessment: MoodAssessment = {
+      mood: moodAnalysis.mood as UserMood,
+      confidence,
+      reasoning: moodAnalysis.reasoning || "AI mood analysis",
+      timestamp: new Date().toISOString(),
+    };
 
-  const neutralMatches =
-    neutralKeywords.filter((word) => response.includes(word)).length +
-    neutralPhrases.filter((phrase) => response.includes(phrase)).length;
+    // Store in session
+    updateSessionMood(userId, sessionId, assessment);
 
-  // Additional pattern analysis
-  const hasExclamation = response.includes("!");
-  const hasMultipleExclamations = (response.match(/!/g) || []).length > 1;
-  const responseLength = response.length;
-  const hasPositiveEmphasis =
-    /really good|so good|very good|extremely|absolutely/.test(response);
-  const hasNegativeEmphasis =
-    /really bad|so bad|very tired|extremely|absolutely exhausted/.test(
-      response
+    console.log(
+      `✅ AI Mood assessed: ${
+        assessment.mood
+      } (confidence: ${confidence.toFixed(2)}) - ${assessment.reasoning}`
     );
 
-  // Scoring system
-  const scores = {
-    energetic:
-      energeticMatches * 2 +
-      (hasMultipleExclamations ? 2 : hasExclamation ? 1 : 0) +
-      (hasPositiveEmphasis ? 1 : 0),
-    content: contentMatches * 1.5 + (hasExclamation ? 0.5 : 0),
-    neutral: neutralMatches * 1.5 + (responseLength < 20 ? 1 : 0),
-    tired:
-      tiredMatches * 2 +
-      (hasNegativeEmphasis ? 1 : 0) +
-      (responseLength < 15 ? 0.5 : 0),
-    stressed: stressedMatches * 2 + (hasNegativeEmphasis ? 1 : 0),
-  };
+    return assessment;
+  } catch (error) {
+    console.error("❌ AI mood assessment failed:", error);
 
-  // Determine highest scoring mood
-  const maxScore = Math.max(...Object.values(scores));
-  const topMood = Object.entries(scores).find(
-    ([_, score]) => score === maxScore
-  )?.[0] as keyof typeof scores;
+    // Fallback to neutral with low confidence
+    const fallbackAssessment: MoodAssessment = {
+      mood: UserMood.NEUTRAL,
+      confidence: 0.3,
+      reasoning: "AI analysis failed, defaulting to neutral",
+      timestamp: new Date().toISOString(),
+    };
 
-  // Map to UserMood enum and set confidence
-  if (maxScore === 0) {
-    detectedMood = UserMood.NEUTRAL;
-    confidence = 0.5;
-    reasoning = "No clear mood indicators detected, defaulting to neutral";
-  } else {
-    switch (topMood) {
-      case "energetic":
-        detectedMood = UserMood.ENERGETIC;
-        confidence = Math.min(0.9, 0.6 + maxScore * 0.1);
-        reasoning = `High energy indicators detected: ${energeticKeywords
-          .filter((w) => response.includes(w))
-          .join(", ")}`;
-        break;
-      case "content":
-        detectedMood = UserMood.CONTENT;
-        confidence = Math.min(0.85, 0.6 + maxScore * 0.08);
-        reasoning = `Positive but balanced indicators: ${contentKeywords
-          .filter((w) => response.includes(w))
-          .join(", ")}`;
-        break;
-      case "tired":
-        detectedMood = UserMood.TIRED;
-        confidence = Math.min(0.9, 0.65 + maxScore * 0.1);
-        reasoning = `Fatigue indicators detected: ${tiredKeywords
-          .filter((w) => response.includes(w))
-          .join(", ")}`;
-        break;
-      case "stressed":
-        detectedMood = UserMood.STRESSED;
-        confidence = Math.min(0.9, 0.65 + maxScore * 0.1);
-        reasoning = `Stress indicators detected: ${stressedKeywords
-          .filter((w) => response.includes(w))
-          .join(", ")}`;
-        break;
-      default:
-        detectedMood = UserMood.NEUTRAL;
-        confidence = 0.6;
-        reasoning = "Mixed indicators, leaning neutral";
-    }
+    updateSessionMood(userId, sessionId, fallbackAssessment);
+    return fallbackAssessment;
   }
-
-  const assessment: MoodAssessment = {
-    mood: detectedMood,
-    confidence,
-    reasoning,
-    timestamp: new Date().toISOString(),
-  };
-
-  // Store in session
-  updateSessionMood(userId, sessionId, assessment);
-
-  console.log(
-    `✅ Mood assessed: ${detectedMood} (confidence: ${confidence.toFixed(
-      2
-    )}) - ${reasoning}`
-  );
-
-  return assessment;
 }
 
 /**

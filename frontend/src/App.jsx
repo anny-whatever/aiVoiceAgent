@@ -58,7 +58,7 @@ export default function App() {
         }
       );
 
-      webRTC.setupSession(users.selectedUser);
+      webRTC.setupSession(users.selectedUser, users.users);
     } catch (error) {
       console.error("Failed to start:", error);
     }
