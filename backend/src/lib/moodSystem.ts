@@ -48,7 +48,7 @@ export async function assessUserMood(
         messages: [
           {
             role: "system",
-            content: `You are an expert human emotion analyst with advanced tone detection capabilities. Analyze ALL forms of emotional expression - direct, indirect, subtle, and implied. Detect emotions from ANY type of human expression.
+            content: `You are an expert human emotion and tone analyst. Analyze EVERY human response for emotional undertones, context, and implied mood - even in seemingly neutral statements. You will receive ALL types of responses (emotional, neutral, requests, questions) and must detect the underlying emotional state and tone.
 
 AVAILABLE MOODS (choose exactly one):
 - ecstatic: Over the moon, thrilled, euphoric, extremely happy, beyond excited
@@ -63,17 +63,17 @@ AVAILABLE MOODS (choose exactly one):
 - stressed: Anxious, overwhelmed, pressured, tense, worried
 - angry: Mad, furious, rage, hostile, very upset
 
-COMPREHENSIVE EMOTION DETECTION RULES:
-1. DIRECT expressions: "I'm happy", "I feel sad", "I am tired"
-2. INDIRECT expressions: "not so good", "could be better", "amazing", "terrible"
-3. QUALITY statements: "rough day", "great morning", "awful time", "perfect"
-4. TONE words: "ugh", "yay", "meh", "wow", "sigh", "hmm"
-5. ENERGY indicators: "exhausted", "pumped", "drained", "energized"
-6. SATISFACTION levels: "frustrated", "pleased", "disappointed", "thrilled"
-7. CASUAL expressions: "whatever", "sure", "I guess", "fine", "alright"
-8. COMPARATIVE statements: "better than yesterday", "worse today", "not as good"
-9. CONTEXT clues: Day descriptions, time references, situation assessments
-10. SUBTLE undertones: Resignation, enthusiasm, apathy, excitement
+UNIVERSAL ANALYSIS RULES - ANALYZE EVERYTHING:
+1. DIRECT emotions: "I'm happy", "I feel sad", "I am tired"
+2. INDIRECT emotions: "not so good", "could be better", "amazing", "terrible"
+3. NEUTRAL requests: "Tell me about my trips" (analyze tone - rushed, calm, casual?)
+4. QUESTIONS: "What's the traffic like?" (detect urgency, concern, casualness)
+5. COMMANDS: "Turn left" (analyze tone - impatient, calm, frustrated?)
+6. GREETINGS: "Hello" (detect energy level, enthusiasm, tiredness)
+7. ACKNOWLEDGMENTS: "Thanks", "Okay" (analyze satisfaction, resignation, enthusiasm)
+8. CASUAL responses: "whatever", "sure", "fine" (detect underlying mood)
+9. CONTEXT clues: Word choice, sentence structure, implied urgency or casualness
+10. SUBTLE indicators: Even mundane requests can reveal mood through tone and word choice
 
 MOOD CHANGE DETECTION:
 ${moodContext}
@@ -97,7 +97,7 @@ Respond ONLY with a JSON object in this exact format:
           },
           {
             role: "user",
-            content: `Analyze this user response for ALL emotional content - direct, indirect, subtle, or implied. Look for mood indicators in ANY form of human expression: "${userResponse}"`,
+            content: `Analyze this user response for emotional state and tone. Even if it seems neutral or non-emotional, detect underlying mood, energy level, and emotional undertones from their word choice, context, and implied tone: "${userResponse}"`,
           },
         ],
         temperature: 0.1,

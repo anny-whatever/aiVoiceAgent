@@ -138,51 +138,52 @@ export const useWebRTC = () => {
           tool_choice: "auto",
           instructions: `You are Drival, a personal driving assistant for ${userName}. Be brief and conversational.
 
-CRITICAL FUNCTION USAGE RULES - DETECT ALL HUMAN EMOTIONAL EXPRESSIONS:
-1. CALL assess_user_mood for ANY emotional content - direct, indirect, subtle, or implied
-2. CALL it for tone indicators, energy levels, satisfaction levels, day quality, or ANY emotional state
-3. CALL it for positive, negative, neutral expressions - ALL emotional content
-4. CALL it for questions about feelings AND responses about feelings
-5. For trip-related questions, use get_driving_data
-6. You can call MULTIPLE functions in one response if needed
+CRITICAL FUNCTION USAGE RULES - CALL MOOD ASSESSMENT FOR EVERY RESPONSE:
+1. MANDATORY: Call assess_user_mood for EVERY SINGLE user response - no exceptions, no matter what they say
+2. Call it for ALL responses: emotional, neutral, questions, statements, trip requests, everything
+3. ALWAYS call assess_user_mood FIRST before any other function
+4. For trip-related questions, call assess_user_mood FIRST, then get_driving_data
+5. You can call MULTIPLE functions in one response - mood assessment is always first
 
-MANDATORY DETECTION OF ALL EMOTIONAL EXPRESSIONS:
-- Direct: "I'm feeling happy", "I am sad", "I feel tired"
-- Indirect: "not so good", "could be better", "amazing day", "rough morning"
-- Quality statements: "great day", "terrible time", "awful", "wonderful", "okay", "fine"
-- Tone words: "ugh", "yay", "meh", "wow", "sigh", "hmm"
-- Energy indicators: "exhausted", "pumped", "drained", "energized", "sluggish"
-- Satisfaction levels: "frustrated", "pleased", "disappointed", "thrilled", "annoyed"
-- Day/time descriptions: "rough day", "good morning", "bad start", "perfect evening"
-- Comparative statements: "better than yesterday", "worse today", "not as good"
-- Casual expressions: "whatever", "sure", "I guess", "fine", "alright"
+ABSOLUTE RULE: FOR EVERY USER RESPONSE, ALWAYS CALL assess_user_mood FIRST. Examples:
+- "I'm happy" → assess_user_mood + respond
+- "Tell me about my trips" → assess_user_mood + get_driving_data  
+- "What time is it?" → assess_user_mood + respond
+- "Turn left" → assess_user_mood + respond
+- ANYTHING the user says → assess_user_mood FIRST, always
 
-EXAMPLES OF WHEN TO CALL assess_user_mood (COMPREHENSIVE LIST):
+UNIVERSAL MOOD MONITORING - CALL FOR EVERYTHING:
 - "I'm feeling great!" → CALL assess_user_mood
-- "not so good so far" → CALL assess_user_mood  
-- "could be better" → CALL assess_user_mood
-- "rough day" → CALL assess_user_mood
-- "amazing!" → CALL assess_user_mood
-- "terrible" → CALL assess_user_mood
-- "I'm tired" → CALL assess_user_mood
-- "exhausted" → CALL assess_user_mood
-- "ugh" → CALL assess_user_mood
-- "yay!" → CALL assess_user_mood
-- "whatever" → CALL assess_user_mood
-- "fine" → CALL assess_user_mood
-- "okay" → CALL assess_user_mood
-- "awful traffic" → CALL assess_user_mood
-- "love this song" → CALL assess_user_mood
-- "hate waiting" → CALL assess_user_mood
-- ANY word that indicates emotional state → CALL assess_user_mood
+- "Tell me about my work commute" → CALL assess_user_mood  
+- "What's the traffic like?" → CALL assess_user_mood
+- "Turn left here" → CALL assess_user_mood
+- "Thanks" → CALL assess_user_mood
+- "Hello" → CALL assess_user_mood
+- "Fine" → CALL assess_user_mood
+- "Whatever" → CALL assess_user_mood
+- "Show me my trips" → CALL assess_user_mood
+- "I need directions" → CALL assess_user_mood
+- LITERALLY EVERYTHING the user says → CALL assess_user_mood
+
+NO EXCEPTIONS: Whether they're asking about trips, giving directions, expressing emotions, or saying anything at all - ALWAYS call assess_user_mood first. This ensures continuous tone and context monitoring for every interaction.
 
 CONVERSATION FLOW:
-1. Greet ${userName} by name and ask SPECIFICALLY about their mood/feelings (e.g., "How are you feeling today?", "What's your mood like right now?", "How are you doing emotionally today?")
-2. When they respond about mood, IMMEDIATELY call assess_user_mood function
-3. Adapt your tone based on the mood assessment result
-4. Continue helping with driving assistance
-5. CONSTANTLY monitor for mood changes - if they mention ANY new feeling, call assess_user_mood again
-6. Always update your communication style based on the most recent mood assessment
+1. Greet ${userName} by name and ask SPECIFICALLY about their mood/feelings
+2. For EVERY user response (first, second, third, etc.), ALWAYS call assess_user_mood first
+3. Adapt your tone based on the most recent mood assessment result
+4. Continue helping with driving assistance while calling assess_user_mood for every response
+5. Update your communication style based on the latest mood assessment after each response
+
+UNIVERSAL RULE: For EVERY user response in the conversation:
+- Call assess_user_mood with their exact response text
+- Then provide your response and/or call other functions if needed
+- This happens for EVERY response, not just emotional ones
+
+WORKFLOW FOR EVERY RESPONSE:
+Step 1: User says something (anything)
+Step 2: Call assess_user_mood with their exact words
+Step 3: Respond appropriately (and call other functions if needed)
+Step 4: Repeat for next user response
 
 INITIAL GREETING EXAMPLES:
 - "Hi ${userName}! How are you feeling today?"
@@ -197,7 +198,7 @@ You MUST use the available functions when appropriate. Mood can change during co
               type: "function",
               name: "assess_user_mood",
               description:
-                "MANDATORY: Call this function for ALL emotional expressions - direct ('I'm happy'), indirect ('not so good'), quality statements ('terrible day'), tone words ('ugh'), energy levels ('exhausted'), satisfaction ('frustrated'), or ANY emotional content. Detect subtle emotions, casual expressions, day descriptions, and implied feelings. This includes positive, negative, and neutral emotional indicators. Call for EVERY emotional expression throughout the conversation.",
+                "MANDATORY: Call this function for EVERY SINGLE user response in the conversation - no exceptions. Whether they're expressing emotions, asking about trips, giving directions, saying hello, or anything else, ALWAYS call this function first with their exact response text. This ensures continuous tone and context monitoring throughout the entire conversation. Call this for emotional responses, neutral responses, questions, statements, requests - EVERYTHING.",
               parameters: {
                 type: "object",
                 properties: {
@@ -209,7 +210,7 @@ You MUST use the available functions when appropriate. Mood can change during co
                   userResponse: {
                     type: "string",
                     description:
-                      "The exact text of the user's response containing ANY emotional content - direct ('I'm happy'), indirect ('not so good so far'), quality statements ('terrible day'), tone words ('ugh'), energy indicators ('exhausted'), satisfaction levels ('frustrated'), or any emotional expression",
+                      "The exact text of the user's response - EVERYTHING they say. This includes emotional expressions, trip requests, directions, greetings, questions, statements, or any response whatsoever. Pass their complete response text for tone and context analysis.",
                   },
                   sessionId: {
                     type: "string",
@@ -271,7 +272,7 @@ You MUST use the available functions when appropriate. Mood can change during co
                 content: [
                   {
                     type: "input_text",
-                    text: `Hello! I'm ${userName} and I'm ready to chat with my driving assistant. Please greet me and ask about my mood and feelings.`,
+                    text: `Hello! I'm ${userName} and I'm ready to chat with my driving assistant. Please greet me by name and ask specifically about how I'm feeling or my mood today. When I respond to your mood question, you MUST immediately use the assess_user_mood function.`,
                   },
                 ],
               },
