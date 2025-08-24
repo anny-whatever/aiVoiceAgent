@@ -9,11 +9,13 @@ import { useWebRTC } from "./hooks/useWebRTC";
 import { useAudio } from "./hooks/useAudio";
 import { useMood } from "./hooks/useMood";
 import { useUsers } from "./hooks/useUsers";
+import { useLanguages } from "./hooks/useLanguages";
 import { RealtimeEventHandler } from "./services/realtimeService";
 import {
   StatusIndicator,
   MoodDisplay,
   UserSelector,
+  LanguageSelector,
   VoiceControls,
   InfoPanel,
 } from "./components";
@@ -24,6 +26,7 @@ export default function App() {
   const { userDing, aiDing, controlMicrophone } = useAudio();
   const mood = useMood();
   const users = useUsers();
+  const languages = useLanguages();
 
   const audioRef = useRef(null);
 
@@ -58,7 +61,12 @@ export default function App() {
         }
       );
 
-      webRTC.setupSession(users.selectedUser, users.users);
+      webRTC.setupSession(
+        users.selectedUser,
+        users.users,
+        languages.selectedLanguage,
+        languages.getLanguageNativeName(languages.selectedLanguage)
+      );
     } catch (error) {
       console.error("Failed to start:", error);
     }
@@ -93,13 +101,21 @@ export default function App() {
         />
 
         {!webRTC.connectionStatus.isConnected && (
-          <UserSelector
-            users={users.users}
-            selectedUser={users.selectedUser}
-            onUserChange={users.setSelectedUser}
-            loading={users.loading}
-            error={users.error}
-          />
+          <>
+            <UserSelector
+              users={users.users}
+              selectedUser={users.selectedUser}
+              onUserChange={users.setSelectedUser}
+              loading={users.loading}
+              error={users.error}
+            />
+
+            <LanguageSelector
+              languages={languages.languages}
+              selectedLanguage={languages.selectedLanguage}
+              onLanguageChange={languages.setSelectedLanguage}
+            />
+          </>
         )}
 
         <VoiceControls

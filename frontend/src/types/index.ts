@@ -3,6 +3,13 @@ export interface User {
   name: string;
 }
 
+export interface Language {
+  code: string;
+  name: string;
+  nativeName: string;
+  flag: string;
+}
+
 export interface MoodAssessment {
   mood: "energetic" | "content" | "neutral" | "tired" | "stressed";
   confidence: number;

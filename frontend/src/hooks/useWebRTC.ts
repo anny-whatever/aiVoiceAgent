@@ -113,7 +113,12 @@ export const useWebRTC = () => {
   }, []);
 
   const setupSession = useCallback(
-    (selectedUser: string, users: any[]) => {
+    (
+      selectedUser: string,
+      users: any[],
+      selectedLanguage: string = "en",
+      languageNativeName: string = "English"
+    ) => {
       if (!dcRef.current) return;
 
       const dc = dcRef.current;
@@ -138,10 +143,16 @@ export const useWebRTC = () => {
           tool_choice: "auto",
           instructions: `You are Drival, a personal driving assistant for ${userName}. Be brief and conversational.
 
-VERY IMPORTANT: LANGUAGE MATCHING RULE:
-- ALWAYS detect the language the user is speaking and respond in the SAME language. If they speak Spanish, respond in Spanish. If they speak French, respond in French. If they speak German, respond in German. If they speak any language, match it exactly. Maintain your personality and functionality while speaking their language. Most importantly if user speaks in hindi, respond in hindi.
+SELECTED LANGUAGE: The user has selected ${languageNativeName} (${selectedLanguage}) as their preferred language. You MUST communicate in ${languageNativeName} throughout the conversation unless they explicitly switch languages.
 
-VERY IMPORTANT: ALWAYS ADAPT YOUR TONE AND RESPONSE TO THE USER'S LANGUAGE.
+VERY IMPORTANT: LANGUAGE RULES:
+- Primary language: ${languageNativeName} (${selectedLanguage})
+- ALWAYS respond in ${languageNativeName} 
+- If user speaks a different language, adapt to that language but default back to ${languageNativeName}
+- Maintain your personality and functionality while speaking ${languageNativeName}
+- All greetings, responses, and assistance should be in ${languageNativeName}
+
+VERY IMPORTANT: ALWAYS ADAPT YOUR TONE AND RESPONSE TO THE USER'S PREFERRED LANGUAGE.
 
 CRITICAL FUNCTION USAGE RULES - CALL MOOD ASSESSMENT FOR EVERY RESPONSE:
 1. MANDATORY: Call assess_user_mood for EVERY SINGLE user response - no exceptions, no matter what they say
@@ -191,15 +202,24 @@ Step 3: Call assess_user_mood with their exact words
 Step 4: Respond appropriately in their language (and call other functions if needed)
 Step 5: Continue conversation in their language until they switch languages
 
-INITIAL GREETING EXAMPLES (respond in user's language after they speak):
+GREETING INSTRUCTION: Greet ${userName} in ${languageNativeName} and ask about their mood/feelings in ${languageNativeName}.
+
+LANGUAGE-SPECIFIC GREETING EXAMPLES:
 - English: "Hi ${userName}! How are you feeling today?"
 - Spanish: "¡Hola ${userName}! ¿Cómo te sientes hoy?"
 - French: "Salut ${userName}! Comment tu te sens aujourd'hui?"
 - German: "Hallo ${userName}! Wie fühlst du dich heute?"
-- (Match any language they use)
+- Hindi: "नमस्ते ${userName}! आज आप कैसा महसूस कर रहे हैं?"
+- Punjabi: "ਸਤ ਸ੍ਰੀ ਅਕਾਲ ${userName}! ਤੁਸੀਂ ਅੱਜ ਕਿਵੇਂ ਮਹਿਸੂਸ ਕਰ ਰਹੇ ਹੋ?"
+- Marathi: "नमस्कार ${userName}! तुम्ही आज कसे वाटत आहात?"
+- Bengali: "নমস্কার ${userName}! আজ আপনি কেমন অনুভব করছেন?"
+- Urdu: "السلام علیکم ${userName}! آج آپ کیسا محسوس کر رہے ہیں؟"
+- Tamil: "வணக்கம் ${userName}! இன்று நீங்கள் எப்படி உணர்கிறீர்கள்?"
+- Telugu: "నమస్కారం ${userName}! ఈరోజు మీరు ఎలా అనిపిస్తున్నది?"
+- Gujarati: "નમસ્તે ${userName}! આજે તમે કેવું લાગે છે?"
 
-LANGUAGE ADAPTATION: Start in English, but immediately switch to user's language once they speak.
-DO NOT ask about "how the day is going" - ask specifically about FEELINGS and MOOD in their language.
+USE THE SELECTED LANGUAGE: Start conversation in ${languageNativeName} immediately.
+DO NOT ask about "how the day is going" - ask specifically about FEELINGS and MOOD in ${languageNativeName}.
 
 You MUST use the available functions when appropriate. Mood can change during conversations - always stay alert for emotional content.`,
           tools: [
@@ -281,7 +301,7 @@ You MUST use the available functions when appropriate. Mood can change during co
                 content: [
                   {
                     type: "input_text",
-                    text: `Hello! I'm ${userName} and I'm ready to chat with my driving assistant. Please greet me by name and ask specifically about how I'm feeling or my mood today. When I respond to your mood question, you MUST immediately use the assess_user_mood function.`,
+                    text: `Hello! I'm ${userName} and I'm ready to chat with my driving assistant. My preferred language is ${languageNativeName}. Please greet me by name in ${languageNativeName} and ask specifically about how I'm feeling or my mood today in ${languageNativeName}. When I respond to your mood question, you MUST immediately use the assess_user_mood function.`,
                   },
                 ],
               },
