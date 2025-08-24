@@ -48,7 +48,9 @@ export async function assessUserMood(
         messages: [
           {
             role: "system",
-            content: `You are an expert human emotion and tone analyst. Analyze EVERY human response for emotional undertones, context, and implied mood - even in seemingly neutral statements. You will receive ALL types of responses (emotional, neutral, requests, questions) and must detect the underlying emotional state and tone.
+            content: `You are an expert human emotion and tone analyst who understands ALL languages. Analyze EVERY human response for emotional undertones, context, and implied mood - even in seemingly neutral statements. You will receive responses in ANY language (English, Spanish, French, German, etc.) and must detect the underlying emotional state and tone regardless of language.
+
+LANGUAGE SUPPORT: Analyze emotional content in any language and respond in English with mood assessment.
 
 AVAILABLE MOODS (choose exactly one):
 - ecstatic: Over the moon, thrilled, euphoric, extremely happy, beyond excited
@@ -63,17 +65,17 @@ AVAILABLE MOODS (choose exactly one):
 - stressed: Anxious, overwhelmed, pressured, tense, worried
 - angry: Mad, furious, rage, hostile, very upset
 
-UNIVERSAL ANALYSIS RULES - ANALYZE EVERYTHING:
-1. DIRECT emotions: "I'm happy", "I feel sad", "I am tired"
-2. INDIRECT emotions: "not so good", "could be better", "amazing", "terrible"
-3. NEUTRAL requests: "Tell me about my trips" (analyze tone - rushed, calm, casual?)
-4. QUESTIONS: "What's the traffic like?" (detect urgency, concern, casualness)
-5. COMMANDS: "Turn left" (analyze tone - impatient, calm, frustrated?)
-6. GREETINGS: "Hello" (detect energy level, enthusiasm, tiredness)
-7. ACKNOWLEDGMENTS: "Thanks", "Okay" (analyze satisfaction, resignation, enthusiasm)
-8. CASUAL responses: "whatever", "sure", "fine" (detect underlying mood)
-9. CONTEXT clues: Word choice, sentence structure, implied urgency or casualness
-10. SUBTLE indicators: Even mundane requests can reveal mood through tone and word choice
+UNIVERSAL ANALYSIS RULES - ANALYZE EVERYTHING IN ANY LANGUAGE:
+1. DIRECT emotions: "I'm happy", "Estoy feliz", "Je suis heureux", "Ich bin glücklich"
+2. INDIRECT emotions: "not so good", "no muy bien", "pas terrible", "nicht so gut"
+3. NEUTRAL requests: "Tell me about my trips", "Dime sobre mis viajes", "Parle-moi de mes trajets"
+4. QUESTIONS: "What's the traffic like?", "¿Cómo está el tráfico?", "Comment est la circulation?"
+5. COMMANDS: "Turn left", "Gira a la izquierda", "Tourne à gauche", "Biege links ab"
+6. GREETINGS: "Hello", "Hola", "Salut", "Hallo" (detect energy level, enthusiasm, tiredness)
+7. ACKNOWLEDGMENTS: "Thanks", "Gracias", "Merci", "Danke" (analyze satisfaction, resignation)
+8. CASUAL responses: "whatever", "lo que sea", "peu importe", "was auch immer"
+9. CONTEXT clues: Word choice, sentence structure, cultural expressions in any language
+10. CROSS-LANGUAGE indicators: Emotional expressions transcend language barriers
 
 MOOD CHANGE DETECTION:
 ${moodContext}
@@ -97,7 +99,7 @@ Respond ONLY with a JSON object in this exact format:
           },
           {
             role: "user",
-            content: `Analyze this user response for emotional state and tone. Even if it seems neutral or non-emotional, detect underlying mood, energy level, and emotional undertones from their word choice, context, and implied tone: "${userResponse}"`,
+            content: `Analyze this user response for emotional state and tone in ANY language. Even if it seems neutral or non-emotional, detect underlying mood, energy level, and emotional undertones from their word choice, context, and implied tone. The response may be in English, Spanish, French, German, or any other language: "${userResponse}"`,
           },
         ],
         temperature: 0.1,
