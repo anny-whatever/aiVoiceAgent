@@ -14,6 +14,8 @@ export default function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
+  const [selectedUser, setSelectedUser] = useState("user1");
+  const [users, setUsers] = useState([]);
 
   const pcRef = useRef(null);
   const dcRef = useRef(null);
@@ -51,6 +53,7 @@ export default function App() {
       const sess = await fetch(`${BACKEND_URL}/api/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: selectedUser }),
       });
       if (!sess.ok) {
         const e = await sess.json().catch(() => ({}));
@@ -109,6 +112,11 @@ export default function App() {
                 parameters: {
                   type: "object",
                   properties: {
+                    userId: {
+                      type: "string",
+                      description: "The ID of the user whose data to retrieve",
+                      enum: ["user1", "user2"],
+                    },
                     category: {
                       type: "string",
                       enum: [
@@ -129,7 +137,7 @@ export default function App() {
                         "Description of what the user is asking about (the query parameter is required but the function returns complete data regardless)",
                     },
                   },
-                  required: ["category", "query"],
+                  required: ["userId", "category", "query"],
                 },
               },
             ],
@@ -231,6 +239,8 @@ export default function App() {
           
           try {
             const args = JSON.parse(event.arguments || "{}");
+            // Automatically inject the selected user ID
+            args.userId = selectedUser;
             console.log("🔍 Calling backend with args:", args);
 
             const r = await fetch(`${BACKEND_URL}/api/tools/get_driving_data`, {
@@ -352,6 +362,22 @@ export default function App() {
     }
   }
 
+  // Fetch available users on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/users`);
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
   useEffect(() => () => stop(), []);
 
   return (
@@ -383,6 +409,28 @@ export default function App() {
           </div>
           <p className="mt-3 text-lg">{status}</p>
         </div>
+
+        {/* User Selection Dropdown */}
+        {!isConnected && users.length > 0 && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Select User:
+            </label>
+            <select
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {users && users.length > 0 ? users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name}
+                </option>
+              )) : (
+                <option value="">Loading users...</option>
+              )}
+            </select>
+          </div>
+        )}
 
         {!isConnected ? (
           <button

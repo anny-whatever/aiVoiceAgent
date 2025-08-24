@@ -1,0 +1,179 @@
+{
+  "users": {
+    "user1": {
+      "name": "Alex Johnson",
+      "systemPrompt": "You are Drival, Alex's personal driving assistant and trip analyzer. You have access to all of Alex's recent driving data from the last 2 months. You can provide insights about Alex's driving patterns, analyze their trips, remind them about frequent destinations, calculate their driving statistics, and help them understand their travel habits. You're helpful, personal, and can remember details about Alex's trips.",
+      "instructions": "When Alex asks about their trips, driving patterns, or travel history, search through their personal trip data to provide accurate insights and analysis. You can discuss specific trips, calculate totals, identify patterns, and provide personalized recommendations based on Alex's actual driving behavior.",
+      "tripData": {
+        "work_commute": [
+          {
+            "id": "alex_commute_001",
+            "date": "2024-12-02",
+            "time": "08:15 AM",
+            "start_location": "Home - 1234 Maple Street",
+            "end_location": "Downtown Office - 567 Business Plaza",
+            "distance": "12.3 miles",
+            "duration": "28 minutes",
+            "purpose": "Work commute",
+            "notes": "Heavy traffic on I-405"
+          },
+          {
+            "id": "alex_commute_002",
+            "date": "2024-12-02",
+            "time": "05:45 PM",
+            "start_location": "Downtown Office - 567 Business Plaza",
+            "end_location": "Home - 1234 Maple Street",
+            "distance": "12.8 miles",
+            "duration": "35 minutes",
+            "purpose": "Return home from work",
+            "notes": "Took alternate route via Oak Avenue"
+          }
+        ],
+        "errands_shopping": [
+          {
+            "id": "alex_errand_001",
+            "date": "2024-12-01",
+            "time": "10:30 AM",
+            "start_location": "Home - 1234 Maple Street",
+            "end_location": "Whole Foods Market - Westfield Plaza",
+            "distance": "4.2 miles",
+            "duration": "12 minutes",
+            "purpose": "Grocery shopping",
+            "notes": "Weekly grocery run"
+          },
+          {
+            "id": "alex_errand_002",
+            "date": "2024-11-30",
+            "time": "02:15 PM",
+            "start_location": "Home - 1234 Maple Street",
+            "end_location": "Target - Riverside Mall",
+            "distance": "6.7 miles",
+            "duration": "18 minutes",
+            "purpose": "Shopping for household items",
+            "notes": "Black Friday deals"
+          }
+        ],
+        "social_visits": [
+          {
+            "id": "alex_social_001",
+            "date": "2024-11-29",
+            "time": "11:00 AM",
+            "start_location": "Home - 1234 Maple Street",
+            "end_location": "Mom's House - 890 Elm Drive",
+            "distance": "18.5 miles",
+            "duration": "32 minutes",
+            "purpose": "Thanksgiving visit",
+            "notes": "Thanksgiving dinner with family"
+          }
+        ],
+        "weekend_trips": [
+          {
+            "id": "alex_weekend_001",
+            "date": "2024-11-22",
+            "time": "09:00 AM",
+            "start_location": "Home - 1234 Maple Street",
+            "end_location": "Mountain View Lake Resort",
+            "distance": "87.2 miles",
+            "duration": "1 hour 45 minutes",
+            "purpose": "Weekend getaway",
+            "notes": "Beautiful drive through mountain roads"
+          }
+        ]
+      }
+    },
+    "user2": {
+      "name": "Sarah Chen",
+      "systemPrompt": "You are Drival, Sarah's personal driving assistant and trip analyzer. You have access to all of Sarah's recent driving data from the last 2 months. You can provide insights about Sarah's driving patterns, analyze their trips, remind them about frequent destinations, calculate their driving statistics, and help them understand their travel habits. You're helpful, personal, and can remember details about Sarah's trips.",
+      "instructions": "When Sarah asks about their trips, driving patterns, or travel history, search through their personal trip data to provide accurate insights and analysis. You can discuss specific trips, calculate totals, identify patterns, and provide personalized recommendations based on Sarah's actual driving behavior.",
+      "tripData": {
+        "work_commute": [
+          {
+            "id": "sarah_commute_001",
+            "date": "2024-12-02",
+            "time": "07:30 AM",
+            "start_location": "Apartment - 789 Oak Boulevard",
+            "end_location": "Tech Campus - Silicon Valley Drive",
+            "distance": "15.7 miles",
+            "duration": "42 minutes",
+            "purpose": "Work commute",
+            "notes": "Morning rush hour traffic"
+          },
+          {
+            "id": "sarah_commute_002",
+            "date": "2024-12-02",
+            "time": "06:30 PM",
+            "start_location": "Tech Campus - Silicon Valley Drive",
+            "end_location": "Apartment - 789 Oak Boulevard",
+            "distance": "15.7 miles",
+            "duration": "38 minutes",
+            "purpose": "Return home from work",
+            "notes": "Lighter evening traffic"
+          }
+        ],
+        "errands_shopping": [
+          {
+            "id": "sarah_errand_001",
+            "date": "2024-12-01",
+            "time": "11:15 AM",
+            "start_location": "Apartment - 789 Oak Boulevard",
+            "end_location": "Trader Joe's - University Avenue",
+            "distance": "3.8 miles",
+            "duration": "9 minutes",
+            "purpose": "Grocery shopping",
+            "notes": "Quick weekend grocery run"
+          },
+          {
+            "id": "sarah_errand_002",
+            "date": "2024-11-28",
+            "time": "03:45 PM",
+            "start_location": "Apartment - 789 Oak Boulevard",
+            "end_location": "Best Buy - Electronics Plaza",
+            "distance": "8.2 miles",
+            "duration": "21 minutes",
+            "purpose": "Electronics shopping",
+            "notes": "Bought new laptop for work"
+          }
+        ],
+        "social_visits": [
+          {
+            "id": "sarah_social_001",
+            "date": "2024-11-24",
+            "time": "02:00 PM",
+            "start_location": "Apartment - 789 Oak Boulevard",
+            "end_location": "Friend's House - 321 Pine Street",
+            "distance": "12.4 miles",
+            "duration": "25 minutes",
+            "purpose": "Friend's housewarming party",
+            "notes": "Great party with college friends"
+          }
+        ],
+        "entertainment_dining": [
+          {
+            "id": "sarah_entertainment_001",
+            "date": "2024-11-20",
+            "time": "07:00 PM",
+            "start_location": "Apartment - 789 Oak Boulevard",
+            "end_location": "Sushi Palace - Downtown District",
+            "distance": "9.1 miles",
+            "duration": "19 minutes",
+            "purpose": "Dinner date",
+            "notes": "Amazing sushi dinner"
+          }
+        ],
+        "weekend_trips": [
+          {
+            "id": "sarah_weekend_001",
+            "date": "2024-11-16",
+            "time": "08:30 AM",
+            "start_location": "Apartment - 789 Oak Boulevard",
+            "end_location": "Napa Valley Winery",
+            "distance": "95.3 miles",
+            "duration": "2 hours 10 minutes",
+            "purpose": "Wine tasting weekend",
+            "notes": "Beautiful scenic drive to wine country"
+          }
+        ]
+      }
+    }
+  }
+}

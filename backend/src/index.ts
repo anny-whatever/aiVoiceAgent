@@ -22,19 +22,26 @@ app.use(
 );
 app.use(express.json());
 
-// Load driving data
-let drivingData: any;
+// Load multi-user driving data
+let multiUserDrivingData: any;
 try {
-  const dataPath = join(__dirname, "../data/driving-data.json");
-  drivingData = JSON.parse(readFileSync(dataPath, "utf-8"));
-  console.log("✅ Driving data loaded");
+  const dataPath = join(__dirname, "../data/multi-user-driving-data.json");
+  multiUserDrivingData = JSON.parse(readFileSync(dataPath, "utf-8"));
+  console.log("✅ Multi-user driving data loaded");
 } catch (error) {
-  console.error("❌ Failed to load driving data:", error);
+  console.error("❌ Failed to load multi-user driving data:", error);
   process.exit(1);
 }
 
-// Find relevant trip data
-const findRelevantTripData = (category: string, query: string) => {
+// Find relevant trip data for a specific user
+const findRelevantTripData = (userId: string, category: string, query: string) => {
+  // Validate user exists
+  if (!multiUserDrivingData.users[userId]) {
+    throw new Error(`User ${userId} not found`);
+  }
+
+  const userData = multiUserDrivingData.users[userId];
+  
   const categoryMap: { [key: string]: string } = {
     work_commute: "work_commute",
     errands_shopping: "errands_shopping",
@@ -47,8 +54,8 @@ const findRelevantTripData = (category: string, query: string) => {
 
   if (category && category !== "general") {
     const dataKey = categoryMap[category];
-    if (dataKey && drivingData.tripData[dataKey]) {
-      const trips = drivingData.tripData[dataKey];
+    if (dataKey && userData.tripData[dataKey]) {
+      const trips = userData.tripData[dataKey];
       const queryLower = query.toLowerCase();
 
       // Search through trips for relevant matches
@@ -99,11 +106,11 @@ const findRelevantTripData = (category: string, query: string) => {
   }
 
   // General overview
-  const totalTrips = Object.values(drivingData.tripData).reduce(
+  const totalTrips = Object.values(userData.tripData).reduce(
     (sum: number, category: any) => sum + category.length,
     0
   );
-  const categories = Object.keys(drivingData.tripData);
+  const categories = Object.keys(userData.tripData);
 
   return `I have data for ${totalTrips} trips across ${
     categories.length
@@ -119,6 +126,23 @@ app.get("/health", (req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
 
+// Get available users
+app.get("/api/users", (req: Request, res: Response) => {
+  try {
+    const users = Object.keys(multiUserDrivingData.users).map(userId => ({
+      id: userId,
+      name: multiUserDrivingData.users[userId].name
+    }));
+    res.json({ users });
+  } catch (error) {
+    console.error("❌ Error fetching users:", error);
+    res.status(500).json({
+      error: "Failed to fetch users",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
 // Session creation for WebRTC
 app.post("/api/session", async (req: Request, res: Response) => {
   try {
@@ -128,6 +152,25 @@ app.post("/api/session", async (req: Request, res: Response) => {
         message: "OpenAI API key not configured",
       });
     }
+
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({
+        error: "Missing userId",
+        message: "UserId is required to create a session",
+      });
+    }
+
+    if (!multiUserDrivingData.users[userId]) {
+      return res.status(404).json({
+        error: "User not found",
+        message: `User ${userId} does not exist`,
+      });
+    }
+
+    const userData = multiUserDrivingData.users[userId];
+    const userInstructions = `${userData.systemPrompt}\n\n${userData.instructions}\n\nYou can discuss work commutes, errands & shopping trips, social visits, entertainment & dining, weekend trips, and medical appointments. Keep responses conversational, personal, and insightful.\n\nFor general greetings, respond naturally and introduce yourself as Drival, ${userData.name}'s personal driving assistant who knows their travel patterns.`;
 
     const response = await fetch(
       "https://api.openai.com/v1/realtime/sessions",
@@ -140,13 +183,7 @@ app.post("/api/session", async (req: Request, res: Response) => {
         body: JSON.stringify({
           model: "gpt-4o-mini-realtime-preview-2024-12-17",
           voice: "alloy",
-          instructions: `You are Drival, your personal driving assistant and trip analyzer. 
-
-You have access to all your recent driving data from the last 2 months. You can provide insights about your driving patterns, analyze your trips, remind you about frequent destinations, calculate your driving statistics, and help you understand your travel habits.
-
-You can discuss work commutes, errands & shopping trips, social visits, entertainment & dining, weekend trips, and medical appointments. Keep responses conversational, personal, and insightful.
-
-For general greetings, respond naturally and introduce yourself as Drival, your personal driving assistant who knows your travel patterns.`,
+          instructions: userInstructions,
         }),
       }
     );
@@ -190,19 +227,19 @@ app.post("/api/tools/get_driving_data", (req: Request, res: Response) => {
   console.log("📋 Request headers:", req.headers);
   console.log("📦 Request body:", JSON.stringify(req.body, null, 2));
 
-  const { category, query } = req.body;
+  const { userId, category, query } = req.body;
 
-  if (!category || !query) {
-    console.error("❌ Missing required parameters:", { category, query });
+  if (!userId || !category || !query) {
+    console.error("❌ Missing required parameters:", { userId, category, query });
     return res.status(400).json({
-      error: "Category and query parameters are required",
+      error: "UserId, category and query parameters are required",
       received: req.body,
     });
   }
 
   try {
-    console.log("📊 Looking up trip data for:", { category, query });
-    const result = findRelevantTripData(category, query);
+    console.log("📊 Looking up trip data for:", { userId, category, query });
+    const result = findRelevantTripData(userId, category, query);
     console.log("✅ Found result length:", result.length, "characters");
     console.log("✅ Result preview:", result.substring(0, 100) + "...");
 
@@ -222,7 +259,9 @@ app.post("/api/tools/get_driving_data", (req: Request, res: Response) => {
 // Add a test endpoint to verify the tool function works
 app.get("/api/tools/test", (req: Request, res: Response) => {
   try {
-    const testResult = findRelevantTripData("work_commute", "downtown office");
+    // Use the first available user for testing
+    const firstUserId = Object.keys(multiUserDrivingData.users)[0];
+    const testResult = findRelevantTripData(firstUserId, "work_commute", "downtown office");
     res.json({
       status: "success",
       testResult: testResult,
@@ -238,19 +277,27 @@ app.get("/api/tools/test", (req: Request, res: Response) => {
 
 // Agent status
 app.get("/api/agent", (req: Request, res: Response) => {
-  const totalTrips = drivingData?.tripData
-    ? Object.values(drivingData.tripData).reduce(
-        (sum: number, category: any) => sum + category.length,
+  const totalTrips = multiUserDrivingData?.users
+    ? Object.values(multiUserDrivingData.users).reduce(
+        (sum: number, user: any) => {
+          return sum + Object.values(user.tripData).reduce(
+            (userSum: number, category: any) => userSum + category.length,
+            0
+          );
+        },
         0
       )
     : 0;
 
+  const totalUsers = multiUserDrivingData?.users ? Object.keys(multiUserDrivingData.users).length : 0;
+
   res.json({
     name: "Drival",
     status: "active",
-    dataLoaded: !!drivingData,
+    dataLoaded: !!multiUserDrivingData,
     totalTrips: totalTrips,
-    dataType: "personal_trip_history",
+    totalUsers: totalUsers,
+    dataType: "multi_user_trip_history",
   });
 });
 

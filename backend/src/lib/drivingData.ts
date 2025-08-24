@@ -2,6 +2,7 @@ import { join } from "path";
 import { readFileSync } from "fs";
 
 export type Trip = {
+  id: string;
   date: string;
   time?: string;
   start_location: string;
@@ -14,26 +15,49 @@ export type Trip = {
 
 export type TripData = Record<string, Trip[]>;
 
-export type DrivingDataFile = {
-  tripData: TripData; // e.g., { work_commute: Trip[], ... }
+export type UserData = {
+  name: string;
+  systemPrompt: string;
+  instructions: string;
+  tripData: TripData;
 };
 
-let drivingData: DrivingDataFile;
+export type MultiUserDrivingDataFile = {
+  users: Record<string, UserData>;
+};
+
+let multiUserDrivingData: MultiUserDrivingDataFile;
 
 export function loadDrivingData(baseDir: string) {
-  const dataPath = join(baseDir, "../data/driving-data.json");
+  const dataPath = join(baseDir, "../data/multi-user-driving-data.json");
   const raw = readFileSync(dataPath, "utf-8");
-  drivingData = JSON.parse(raw);
-  return drivingData;
+  multiUserDrivingData = JSON.parse(raw);
+  return multiUserDrivingData;
 }
 
-export function getDrivingData(): DrivingDataFile {
-  if (!drivingData) throw new Error("Driving data not loaded");
-  return drivingData;
+export function getMultiUserDrivingData(): MultiUserDrivingDataFile {
+  if (!multiUserDrivingData) throw new Error("Multi-user driving data not loaded");
+  return multiUserDrivingData;
 }
 
-export function findRelevantTripData(category: string, query: string) {
-  const data = getDrivingData();
+export function getUsers(): Array<{id: string, name: string}> {
+  const data = getMultiUserDrivingData();
+  return Object.keys(data.users).map(userId => ({
+    id: userId,
+    name: data.users[userId].name
+  }));
+}
+
+export function getUserData(userId: string): UserData {
+  const data = getMultiUserDrivingData();
+  if (!data.users[userId]) {
+    throw new Error(`User ${userId} not found`);
+  }
+  return data.users[userId];
+}
+
+export function findRelevantTripData(userId: string, category: string, query: string) {
+  const userData = getUserData(userId);
   const categoryMap: Record<string, string> = {
     work_commute: "work_commute",
     errands_shopping: "errands_shopping",
@@ -46,8 +70,8 @@ export function findRelevantTripData(category: string, query: string) {
 
   if (category && category !== "general") {
     const key = categoryMap[category];
-    if (key && data.tripData[key]) {
-      const trips = data.tripData[key];
+    if (key && userData.tripData[key]) {
+      const trips = userData.tripData[key];
 
       // Sort trips by date (newest first) to ensure proper chronological order
       const sortedTrips = [...trips].sort((a, b) => {
@@ -78,15 +102,15 @@ export function findRelevantTripData(category: string, query: string) {
   }
 
   // For general queries, provide overview
-  const totals = Object.values(data.tripData).reduce(
+  const totals = Object.values(userData.tripData).reduce(
     (s, arr) => s + arr.length,
     0
   );
-  const categoryStats = Object.entries(data.tripData)
+  const categoryStats = Object.entries(userData.tripData)
     .map(([cat, trips]) => `${cat.replace("_", " ")}: ${trips.length} trips`)
     .join(", ");
 
   return `Complete trip overview: ${totals} total trips across ${
-    Object.keys(data.tripData).length
+    Object.keys(userData.tripData).length
   } categories.\n\nBreakdown: ${categoryStats}.\n\nAsk me about specific categories for detailed trip information.`;
 }
