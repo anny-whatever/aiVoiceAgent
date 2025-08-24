@@ -187,8 +187,8 @@ CONVERSATION FLOW:
 INITIAL GREETING EXAMPLES:
 - "Hi ${userName}! How are you feeling today?"
 - "Hello ${userName}! What's your mood like right now?"
-- "Hey ${userName}! How are you doing emotionally today?"
-- "Hi there ${userName}! How's your emotional state today?"
+- "Hey ${userName}! How are you doing today?"
+
 DO NOT ask about "how the day is going" - ask specifically about FEELINGS and MOOD.
 
 You MUST use the available functions when appropriate. Mood can change during conversations - always stay alert for emotional content.`,
@@ -271,7 +271,7 @@ You MUST use the available functions when appropriate. Mood can change during co
                 content: [
                   {
                     type: "input_text",
-                    text: `Hello! I'm ${userName} and I'm ready to chat with my driving assistant.`,
+                    text: `Hello! I'm ${userName} and I'm ready to chat with my driving assistant. Please greet me and ask about my mood and feelings.`,
                   },
                 ],
               },
