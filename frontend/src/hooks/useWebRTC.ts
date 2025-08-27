@@ -154,8 +154,12 @@ export const useWebRTC = () => {
         console.log("🔧 Configuring session with tools...");
         sendSessionUpdate(dc, {
           turn_detection: {
-            type: "semantic_vad",
-            eagerness: "low",
+            "type": "server_vad",
+      "threshold": 0.5,
+      "prefix_padding_ms": 300,
+      "silence_duration_ms": 500,
+      "create_response": true, // only in conversation mode
+      "interrupt_response": true, // only in conversation mode
           },
           modalities: ["text", "audio"],
           voice: "coral",

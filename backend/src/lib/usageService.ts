@@ -193,7 +193,7 @@ class UsageService {
   /**
    * Processes a heartbeat from the client
    */
-  async processHeartbeat(heartbeatData: HeartbeatData): Promise<{ success: boolean; warning?: QuotaWarning }> {
+  async processHeartbeat(heartbeatData: HeartbeatData): Promise<{ success: boolean; warning?: QuotaWarning; sessionTimeRemaining?: number }> {
     const activeSession = await usageDB.getActiveSession(heartbeatData.sessionId);
     
     if (!activeSession) {
@@ -220,7 +220,8 @@ class UsageService {
     // Get current usage to calculate remaining session time for warnings
     const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
     const monthlyUsage = await usageDB.getUserUsage(activeSession.userId, currentMonth);
-    const sessionTimeRemaining = Math.max(0, (monthlyUsage?.sessionTimeRemaining || SESSION_TIME_CONFIG.INITIAL_SESSION_TIME) - newQuotaUsed);
+    const currentSessionTimeRemaining = monthlyUsage?.sessionTimeRemaining || SESSION_TIME_CONFIG.INITIAL_SESSION_TIME;
+    const sessionTimeRemaining = Math.max(0, currentSessionTimeRemaining - incrementalSeconds);
 
     // Update user usage with current session time remaining for display purposes
     if (monthlyUsage) {
@@ -253,7 +254,7 @@ class UsageService {
       await this.endSession(heartbeatData.sessionId);
     }
 
-    return { success: true, warning };
+    return { success: true, warning, sessionTimeRemaining };
   }
 
   /**

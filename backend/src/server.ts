@@ -24,12 +24,7 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(
-  rateLimit({
-    windowMs: 60_000,
-    max: 1000,
-  })
-);
+
 
 // Load data and initialize services on boot
 async function initializeServer() {

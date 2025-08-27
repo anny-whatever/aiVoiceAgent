@@ -78,9 +78,10 @@ router.post('/heartbeat', async (req: Request, res: Response): Promise<void> => 
 
     // Update WebSocket clients with quota information
     const warnings = result.warning ? [result.warning] : [];
+    const quotaRemaining = result.sessionTimeRemaining || 0;
     await websocketMonitor.updateSessionQuota(
       tokenData.sessionId, 
-      tokenData.quotaRemaining, 
+      quotaRemaining, 
       warnings
     );
     
