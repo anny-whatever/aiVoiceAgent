@@ -1,6 +1,7 @@
 import { ApiResponse, User, SessionInfo } from "../types";
 
 const BACKEND_URL = "http://localhost:3001";
+const API_KEY = "5a0fe6a5eb768c1bb43999b8aa56a7cf";
 
 class SessionManager {
   private sessionToken: string | null = null;
@@ -48,7 +49,10 @@ export class ApiService {
   static async createSession(userId: string): Promise<{ apiKey: string; sessionInfo: SessionInfo }> {
     const response = await fetch(`${BACKEND_URL}/api/session`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-API-Key": API_KEY
+      },
       body: JSON.stringify({ userId }),
     });
 
@@ -69,13 +73,7 @@ export class ApiService {
     return { apiKey: data.apiKey, sessionInfo };
   }
 
-  static async getUsers(): Promise<User[]> {
-    const response = await fetch(`${BACKEND_URL}/api/users`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch users");
-    }
-    return response.json();
-  }
+  // getUsers method removed for security - users are now hardcoded in fake auth service
 
   static getSessionManager() {
     return sessionManager;
@@ -85,6 +83,7 @@ export class ApiService {
     const token = sessionManager.getSessionToken();
     return {
       "Content-Type": "application/json",
+      "X-API-Key": API_KEY,
       ...(token && { "Authorization": `Bearer ${token}` }),
     };
   }

@@ -258,7 +258,7 @@ You MUST use the available functions when appropriate. Mood can change during co
                   userId: {
                     type: "string",
                     description: "The ID of the user whose mood to assess",
-                    enum: ["user1", "user2"],
+                    enum: ["firebase_user_001_john_doe", "firebase_user_001_jane_smith"],
                   },
                   userResponse: {
                     type: "string",
@@ -284,7 +284,7 @@ You MUST use the available functions when appropriate. Mood can change during co
                   userId: {
                     type: "string",
                     description: "The ID of the user whose data to retrieve",
-                    enum: ["user1", "user2"],
+                    enum: ["firebase_user_001_john_doe", "firebase_user_001_jane_smith"],
                   },
                   category: {
                     type: "string",

@@ -1,13 +1,13 @@
 {
   "users": {
-    "user1": {
-      "name": "Alex Johnson",
-      "systemPrompt": "You are Drival, Alex's personal driving assistant and trip analyzer. You have access to all of Alex's recent driving data from the last 2 months. You can provide insights about Alex's driving patterns, analyze their trips, remind them about frequent destinations, calculate their driving statistics, and help them understand their travel habits. You're helpful, personal, and can remember details about Alex's trips.",
+    "firebase_user_001_jane_smith": {
+      "name": "Jane Smith",
+      "systemPrompt": "You are Drival, Jane Smith's personal driving assistant and trip analyzer. You have access to all of Jane Smith's recent driving data from the last 2 months. You can provide insights about Jane Smith's driving patterns, analyze their trips, remind them about frequent destinations, calculate their driving statistics, and help them understand their travel habits. You're helpful, personal, and can remember details about Jane Smith's trips.",
       "instructions": "When Alex asks about their trips, driving patterns, or travel history, search through their personal trip data to provide accurate insights and analysis. You can discuss specific trips, calculate totals, identify patterns, and provide personalized recommendations based on Alex's actual driving behavior.",
       "tripData": {
         "work_commute": [
           {
-            "id": "alex_commute_001",
+            "id": "jane_smith_commute_001",
             "date": "2024-12-02",
             "time": "08:15 AM",
             "start_location": "Home - 1234 Maple Street",
@@ -18,7 +18,7 @@
             "notes": "Heavy traffic on I-405"
           },
           {
-            "id": "alex_commute_002",
+            "id": "jane_smith_commute_002",
             "date": "2024-12-02",
             "time": "05:45 PM",
             "start_location": "Downtown Office - 567 Business Plaza",
@@ -31,7 +31,7 @@
         ],
         "errands_shopping": [
           {
-            "id": "alex_errand_001",
+            "id": "jane_smith_errand_001",
             "date": "2024-12-01",
             "time": "10:30 AM",
             "start_location": "Home - 1234 Maple Street",
@@ -42,7 +42,7 @@
             "notes": "Weekly grocery run"
           },
           {
-            "id": "alex_errand_002",
+            "id": "jane_smith_errand_002",
             "date": "2024-11-30",
             "time": "02:15 PM",
             "start_location": "Home - 1234 Maple Street",
@@ -55,7 +55,7 @@
         ],
         "social_visits": [
           {
-            "id": "alex_social_001",
+            "id": "jane_smith_social_001",
             "date": "2024-11-29",
             "time": "11:00 AM",
             "start_location": "Home - 1234 Maple Street",
@@ -68,7 +68,7 @@
         ],
         "weekend_trips": [
           {
-            "id": "alex_weekend_001",
+            "id": "jane_smith_weekend_001",
             "date": "2024-11-22",
             "time": "09:00 AM",
             "start_location": "Home - 1234 Maple Street",
@@ -81,14 +81,14 @@
         ]
       }
     },
-    "user2": {
-      "name": "Sarah Chen",
-      "systemPrompt": "You are Drival, Sarah's personal driving assistant and trip analyzer. You have access to all of Sarah's recent driving data from the last 2 months. You can provide insights about Sarah's driving patterns, analyze their trips, remind them about frequent destinations, calculate their driving statistics, and help them understand their travel habits. You're helpful, personal, and can remember details about Sarah's trips.",
+    "firebase_user_001_john_doe": {
+      "name": "John Doe",
+      "systemPrompt": "You are Drival, John Doe's personal driving assistant and trip analyzer. You have access to all of John Doe's recent driving data from the last 2 months. You can provide insights about John Doe's driving patterns, analyze their trips, remind them about frequent destinations, calculate their driving statistics, and help them understand their travel habits. You're helpful, personal, and can remember details about John Doe's trips.",
       "instructions": "When Sarah asks about their trips, driving patterns, or travel history, search through their personal trip data to provide accurate insights and analysis. You can discuss specific trips, calculate totals, identify patterns, and provide personalized recommendations based on Sarah's actual driving behavior.",
       "tripData": {
         "work_commute": [
           {
-            "id": "sarah_commute_001",
+            "id": "john_commute_001",
             "date": "2024-12-02",
             "time": "07:30 AM",
             "start_location": "Apartment - 789 Oak Boulevard",
@@ -99,7 +99,7 @@
             "notes": "Morning rush hour traffic"
           },
           {
-            "id": "sarah_commute_002",
+            "id": "john_commute_002",
             "date": "2024-12-02",
             "time": "06:30 PM",
             "start_location": "Tech Campus - Silicon Valley Drive",
@@ -112,7 +112,7 @@
         ],
         "errands_shopping": [
           {
-            "id": "sarah_errand_001",
+            "id": "john_errand_001",
             "date": "2024-12-01",
             "time": "11:15 AM",
             "start_location": "Apartment - 789 Oak Boulevard",
@@ -123,7 +123,7 @@
             "notes": "Quick weekend grocery run"
           },
           {
-            "id": "sarah_errand_002",
+            "id": "john_errand_002",
             "date": "2024-11-28",
             "time": "03:45 PM",
             "start_location": "Apartment - 789 Oak Boulevard",
@@ -136,7 +136,7 @@
         ],
         "social_visits": [
           {
-            "id": "sarah_social_001",
+            "id": "john_social_001",
             "date": "2024-11-24",
             "time": "02:00 PM",
             "start_location": "Apartment - 789 Oak Boulevard",
@@ -149,7 +149,7 @@
         ],
         "entertainment_dining": [
           {
-            "id": "sarah_entertainment_001",
+            "id": "john_entertainment_001",
             "date": "2024-11-20",
             "time": "07:00 PM",
             "start_location": "Apartment - 789 Oak Boulevard",
@@ -162,7 +162,7 @@
         ],
         "weekend_trips": [
           {
-            "id": "sarah_weekend_001",
+            "id": "john_weekend_001",
             "date": "2024-11-16",
             "time": "08:30 AM",
             "start_location": "Apartment - 789 Oak Boulevard",
@@ -173,6 +173,20 @@
             "notes": "Beautiful scenic drive to wine country"
           }
         ]
+      }
+    },
+    "firebase_user_002_jane_smith": {
+      "name": "User firebase_user_002_jane_smith",
+      "systemPrompt": "You are Drival, firebase_user_002_jane_smith's personal driving assistant and trip analyzer. You have access to all of firebase_user_002_jane_smith's driving data. You can provide insights about their driving patterns, analyze their trips, remind them about frequent destinations, calculate their driving statistics, and help them understand their travel habits. You're helpful, personal, and can remember details about their trips.",
+      "instructions": "When firebase_user_002_jane_smith asks about their trips, driving patterns, or travel history, search through their personal trip data to provide accurate insights and analysis. You can discuss specific trips, calculate totals, identify patterns, and provide personalized recommendations based on their actual driving behavior.",
+      "tripData": {
+        "work_commute": [],
+        "errands_shopping": [],
+        "social_visits": [],
+        "entertainment_dining": [],
+        "weekend_trips": [],
+        "medical_appointments": [],
+        "general": []
       }
     }
   }

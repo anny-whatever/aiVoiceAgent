@@ -12,6 +12,7 @@ import { useUsers } from "./hooks/useUsers";
 import { useLanguages } from "./hooks/useLanguages";
 import { useQuota } from "./hooks/useQuota";
 import { RealtimeEventHandler } from "./services/realtimeService";
+import { fakeAuth } from "./services/fakeAuth";
 import {
   StatusIndicator,
   MoodDisplay,
@@ -32,6 +33,12 @@ export default function App() {
   const quota = useQuota();
 
   const audioRef = useRef(null);
+
+  // Initialize fake authentication on app start
+  useEffect(() => {
+    // Auto-sign in the first user for demo purposes
+    fakeAuth.switchUser(0).catch(console.error);
+  }, []);
 
   // Create event handler with dependencies
   const eventHandler = new RealtimeEventHandler({

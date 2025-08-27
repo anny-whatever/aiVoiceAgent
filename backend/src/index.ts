@@ -131,22 +131,7 @@ app.get("/health", (req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
 
-// Get available users
-app.get("/api/users", validateApiKey, (req: Request, res: Response) => {
-  try {
-    const users = Object.keys(multiUserDrivingData.users).map((userId) => ({
-      id: userId,
-      name: multiUserDrivingData.users[userId].name,
-    }));
-    res.json({ users });
-  } catch (error) {
-    console.error("❌ Error fetching users:", error);
-    res.status(500).json({
-      error: "Failed to fetch users",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+// User listing endpoint removed for security - users should not be exposed
 
 // Session creation is now handled by the session router with proper usage tracking
 

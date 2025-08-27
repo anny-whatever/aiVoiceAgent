@@ -17,18 +17,7 @@ router.use(addSessionHeaders);
 
 
 
-/** Get available users */
-router.get("/users", validateApiKey, (_req, res) => {
-  try {
-    const users = getUsers();
-    res.json(users);
-  } catch (e: any) {
-    res.status(500).json({
-      error: "Failed to retrieve users",
-      details: e?.message || "Unknown error",
-    });
-  }
-});
+// User listing endpoint removed for security - users should not be exposed
 
 /** Tool endpoint invoked by the browser when model requests get_driving_data */
 router.post("/tools/get_driving_data", validateApiKey, (req, res) => {
