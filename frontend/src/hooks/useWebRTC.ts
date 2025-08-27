@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react";
-import { WebRTCRefs, ConnectionStatus } from "../types";
+import { WebRTCRefs, ConnectionStatus, SessionInfo } from "../types";
 import {
   connectRealtime,
   sendSessionUpdate,
@@ -60,12 +60,16 @@ export const useWebRTC = () => {
     async (
       selectedUser: string,
       onEvent: (event: any) => void,
-      onRemoteTrack: (stream: MediaStream) => void
+      onRemoteTrack: (stream: MediaStream) => void,
+      onSessionCreated?: (sessionInfo: SessionInfo) => void
     ) => {
       try {
         setStatus("Connecting...");
 
-        const { apiKey } = await ApiService.createSession(selectedUser);
+        const { apiKey, sessionInfo } = await ApiService.createSession(selectedUser);
+        
+        // Notify about session creation
+        onSessionCreated?.(sessionInfo);
 
         const { pc, dc, mic } = await connectRealtime({
           apiKey,
@@ -78,7 +82,7 @@ export const useWebRTC = () => {
         dcRef.current = dc;
         micRef.current = mic;
 
-        return { pc, dc, mic };
+        return { pc, dc, mic, sessionInfo };
       } catch (error) {
         console.error("Connection error:", error);
         setStatus(
@@ -96,6 +100,9 @@ export const useWebRTC = () => {
       dcRef.current?.close();
       pcRef.current?.close();
       micRef.current?.getTracks().forEach((t) => t.stop());
+      
+      // Clear session data
+      ApiService.getSessionManager().clearSession();
     } catch (error) {
       console.error("Disconnect error:", error);
     }

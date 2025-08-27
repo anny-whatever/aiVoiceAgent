@@ -10,6 +10,7 @@ import { useAudio } from "./hooks/useAudio";
 import { useMood } from "./hooks/useMood";
 import { useUsers } from "./hooks/useUsers";
 import { useLanguages } from "./hooks/useLanguages";
+import { useQuota } from "./hooks/useQuota";
 import { RealtimeEventHandler } from "./services/realtimeService";
 import {
   StatusIndicator,
@@ -18,6 +19,7 @@ import {
   LanguageSelector,
   VoiceControls,
   InfoPanel,
+  QuotaIndicator,
 } from "./components";
 
 export default function App() {
@@ -27,6 +29,7 @@ export default function App() {
   const mood = useMood();
   const users = useUsers();
   const languages = useLanguages();
+  const quota = useQuota();
 
   const audioRef = useRef(null);
 
@@ -58,6 +61,11 @@ export default function App() {
             audioRef.current.srcObject = stream;
             audioRef.current.play().catch(console.error);
           }
+        },
+        (sessionInfo) => {
+          // Initialize WebSocket connection for quota updates
+          quota.initializeWebSocket();
+          quota.updateQuotaStatus();
         }
       );
 
@@ -75,6 +83,7 @@ export default function App() {
   const handleStop = () => {
     webRTC.disconnect();
     mood.clearMood();
+    quota.resetSession();
   };
 
   // Cleanup on unmount
@@ -92,6 +101,10 @@ export default function App() {
         </h1>
 
         <StatusIndicator connectionStatus={webRTC.connectionStatus} />
+
+        {webRTC.connectionStatus.isConnected && (
+          <QuotaIndicator quotaStatus={quota.quotaStatus} />
+        )}
 
         <MoodDisplay
           currentMood={mood.currentMood}
@@ -123,6 +136,32 @@ export default function App() {
           onStart={handleStart}
           onStop={handleStop}
         />
+
+        {/* Quota Warning */}
+        {quota.lastWarning && (
+          <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-yellow-300 text-sm">
+                ⚠️ {quota.lastWarning.message}
+              </span>
+              <button
+                onClick={quota.clearWarning}
+                className="text-yellow-300 hover:text-yellow-100 ml-2"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Session Terminated */}
+        {quota.isSessionTerminated && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <div className="text-red-300 text-sm text-center">
+              🚫 Session ended: {quota.terminationReason}
+            </div>
+          </div>
+        )}
 
         <InfoPanel />
 

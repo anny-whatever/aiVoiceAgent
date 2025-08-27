@@ -7,6 +7,8 @@ import { loadDrivingData } from "./lib/drivingData";
 import { ENV } from "./config/env";
 import sessionRouter from "./routes/session";
 import toolsRouter from "./routes/tools";
+import { usageService } from "./lib/usageService.js";
+import { websocketMonitor } from "./lib/websocketMonitor.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,18 +26,27 @@ app.use(express.json());
 app.use(
   rateLimit({
     windowMs: 60_000,
-    max: 120,
+    max: 1000,
   })
 );
 
-// Load data on boot
-try {
-  loadDrivingData(__dirname);
-  console.log("✅ Driving data loaded");
-} catch (err) {
-  console.error("❌ Failed to load driving data:", err);
-  process.exit(1);
+// Load data and initialize services on boot
+async function initializeServer() {
+  try {
+    loadDrivingData(__dirname);
+    console.log("✅ Driving data loaded");
+    
+    // Initialize usage tracking service
+    await usageService.initialize();
+    console.log("✅ Usage service initialized");
+  } catch (err) {
+    console.error("❌ Failed to initialize services:", err);
+    process.exit(1);
+  }
 }
+
+// Initialize server
+initializeServer();
 
 // Health
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
@@ -53,6 +64,63 @@ app.get("/api/agent", (_req, res) => {
   });
 });
 
-app.listen(ENV.PORT, () => {
+const server = app.listen(ENV.PORT, () => {
   console.log(`🚀 Drival server running on http://localhost:${ENV.PORT}`);
+  
+  // Initialize WebSocket monitor after server starts
+  websocketMonitor.initialize(server);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully');
+  
+  server.close(async () => {
+    try {
+      await websocketMonitor.shutdown();
+      await usageService.shutdown();
+      console.log('✅ Services shut down');
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ Error during shutdown:', error);
+      process.exit(1);
+    }
+  });
+});
+
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT received, shutting down gracefully');
+  
+  server.close(async () => {
+    try {
+      await usageService.shutdown();
+      console.log('✅ Usage service shut down');
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ Error during shutdown:', error);
+      process.exit(1);
+    }
+  });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', async (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  try {
+    await websocketMonitor.shutdown();
+    await usageService.shutdown();
+  } catch (shutdownError) {
+    console.error('❌ Error during emergency shutdown:', shutdownError);
+  }
+  process.exit(1);
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  try {
+    await usageService.shutdown();
+  } catch (shutdownError) {
+    console.error('❌ Error during emergency shutdown:', shutdownError);
+  }
+  process.exit(1);
 });

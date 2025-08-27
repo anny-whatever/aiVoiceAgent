@@ -22,6 +22,21 @@ export interface ConnectionStatus {
   status: string;
 }
 
+export interface SessionInfo {
+  sessionToken: string;
+  quotaRemaining: number;
+  sessionTimeLimit: number;
+  warningThreshold: number;
+}
+
+export interface QuotaStatus {
+  remaining: number;
+  total: number;
+  percentage: number;
+  isWarning: boolean;
+  isCritical: boolean;
+}
+
 export interface WebRTCRefs {
   pc: RTCPeerConnection | null;
   dc: RTCDataChannel | null;

@@ -6,8 +6,17 @@ import {
   generateMoodInstructions,
 } from "../lib/moodSystem";
 import { UserMood } from "../types/mood";
+import { handleHeartbeat, injectSessionToken } from "../tools/heartbeat.js";
+import { validateSessionToken, trackToolUsage, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
 
 const router = Router();
+
+// Apply middleware for session management
+router.use(sessionCors);
+router.use(addSessionHeaders);
+
+// Heartbeat endpoint (mandatory for usage tracking)
+router.post("/tools/send_heartbeat", injectSessionToken, handleHeartbeat);
 
 /** Get available users */
 router.get("/users", (_req, res) => {
@@ -23,7 +32,7 @@ router.get("/users", (_req, res) => {
 });
 
 /** Tool endpoint invoked by the browser when model requests get_driving_data */
-router.post("/tools/get_driving_data", (req, res) => {
+router.post("/tools/get_driving_data", validateSessionToken, trackToolUsage, (req, res) => {
   console.log("🔧 Tool called:", req.body);
 
   const { userId, category, query } = req.body || {};
@@ -59,7 +68,7 @@ router.post("/tools/get_driving_data", (req, res) => {
 });
 
 /** Mood assessment tool endpoint - called by AI agent */
-router.post("/tools/assess_user_mood", async (req, res) => {
+router.post("/tools/assess_user_mood", validateSessionToken, trackToolUsage, async (req, res) => {
   console.log("🧠 Mood assessment tool called:", req.body);
 
   const { userId, userResponse, sessionId } = req.body || {};
