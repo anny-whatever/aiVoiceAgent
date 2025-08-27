@@ -30,7 +30,7 @@ class HeartbeatService {
     // Set up interval to send heartbeat every 60 seconds
     this.intervalId = setInterval(() => {
       this.sendHeartbeat();
-    }, 60000); // 60 seconds
+    }, 5000); // 60 seconds
 
     console.log('Heartbeat service started');
   }

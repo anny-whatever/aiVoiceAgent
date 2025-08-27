@@ -107,19 +107,19 @@ class UsageDatabase {
                 ip_address TEXT
               );
 
-              CREATE INDEX IF NOT EXISTS idx_user_usage_date ON user_usage(user_id, date);
+              CREATE INDEX IF NOT EXISTS idx_user_usage_month ON user_usage(user_id, month);
               CREATE INDEX IF NOT EXISTS idx_active_sessions_user ON active_sessions(user_id);
               CREATE INDEX IF NOT EXISTS idx_active_sessions_expiry ON active_sessions(token_expiry);
             `;
 
-            this.db!.exec(createTables, (err: Error | null) => {
-              if (err) {
-                reject(err);
-              } else {
-                console.log('✅ Database schema updated successfully');
-                resolve();
-              }
-            });
+            try {
+              this.db!.exec(createTables);
+              console.log('✅ Database schema updated successfully');
+              resolve();
+            } catch (err) {
+              console.error('❌ Database schema creation failed:', err);
+              reject(err);
+            }
           });
         });
       });
