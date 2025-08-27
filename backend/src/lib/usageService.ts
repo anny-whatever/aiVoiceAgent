@@ -191,34 +191,46 @@ class UsageService {
   }
 
   /**
-   * Processes a heartbeat from the AI
+   * Processes a heartbeat from the client
    */
   async processHeartbeat(heartbeatData: HeartbeatData): Promise<{ success: boolean; warning?: QuotaWarning }> {
-    console.log('💓 Processing heartbeat for session:', heartbeatData.sessionId, 'quotaUsed:', heartbeatData.quotaUsed);
     const activeSession = await usageDB.getActiveSession(heartbeatData.sessionId);
     
     if (!activeSession) {
       return { success: false };
     }
 
-    // Update session with new heartbeat and quota usage
+    // Calculate elapsed time since last heartbeat (incremental, not cumulative)
+    const lastHeartbeatTime = new Date(activeSession.lastHeartbeat).getTime();
+    const currentTime = Date.now();
+    const incrementalSeconds = Math.floor((currentTime - lastHeartbeatTime) / 1000);
+    const newQuotaUsed = activeSession.quotaUsed + incrementalSeconds;
+    
+    console.log('💓 Processing heartbeat for session:', heartbeatData.sessionId, 'incremental time:', incrementalSeconds, 'seconds, total used:', newQuotaUsed, 'seconds');
+
+    // Update session with new heartbeat timestamp and incremental quota usage
     await usageDB.updateActiveSession(heartbeatData.sessionId, {
       lastHeartbeat: new Date().toISOString(),
-      quotaUsed: heartbeatData.quotaUsed,
+      quotaUsed: newQuotaUsed,
     });
 
-    // Get current usage and calculate remaining session time
+    console.log('📝 Updating active session:', heartbeatData.sessionId, 'with:', { lastHeartbeat: new Date().toISOString(), quotaUsed: newQuotaUsed });
+    console.log('✅ Active session updated in database');
+
+    // Get current usage to calculate remaining session time for warnings
     const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
     const monthlyUsage = await usageDB.getUserUsage(activeSession.userId, currentMonth);
-    const sessionTimeRemaining = Math.max(0, (monthlyUsage?.sessionTimeRemaining || 0) - heartbeatData.quotaUsed);
+    const sessionTimeRemaining = Math.max(0, (monthlyUsage?.sessionTimeRemaining || SESSION_TIME_CONFIG.INITIAL_SESSION_TIME) - newQuotaUsed);
 
-    // Update the usage record with new remaining time
+    // Update user usage with current session time remaining for display purposes
     if (monthlyUsage) {
-      const updatedUsage: UserUsage = {
+      const updatedUsage = {
         ...monthlyUsage,
         sessionTimeRemaining,
       };
       await usageDB.updateUserUsage(updatedUsage);
+      console.log('💾 Updating user usage:', updatedUsage);
+      console.log('✅ User usage updated in database');
     }
 
     // Generate warning if approaching limits
@@ -320,10 +332,40 @@ class UsageService {
   }
 
   /**
-   * Cleanup expired sessions
+   * Cleanup expired sessions based on server-side time calculation
    */
   private async cleanupExpiredSessions(): Promise<void> {
     try {
+      // Get all active sessions
+      const allActiveSessions = await usageDB.getAllActiveSessions();
+      const currentTime = Date.now();
+      
+      for (const session of allActiveSessions) {
+        // Get user's monthly usage to check remaining time
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        const monthlyUsage = await usageDB.getUserUsage(session.userId, currentMonth);
+        
+        if (monthlyUsage) {
+          const sessionTimeRemaining = Math.max(0, monthlyUsage.sessionTimeRemaining - session.quotaUsed);
+          
+          // If session has exceeded time limit, end it
+          if (sessionTimeRemaining <= 0) {
+            console.log(`🕒 Auto-expiring session ${session.sessionId} - time exceeded (${session.quotaUsed}s used)`);
+            await this.endSession(session.sessionId);
+          }
+        }
+        
+        // Also cleanup stale sessions (no heartbeat for 10+ minutes)
+        const lastHeartbeat = new Date(session.lastHeartbeat).getTime();
+        const staleThreshold = currentTime - (10 * 60 * 1000); // 10 minutes
+        
+        if (lastHeartbeat < staleThreshold) {
+          console.log(`🧹 Cleaning up stale session ${session.sessionId} - no heartbeat for 10+ minutes`);
+          await usageDB.deleteActiveSession(session.sessionId);
+        }
+      }
+      
+      // Also run the original database cleanup
       await usageDB.cleanupExpiredSessions();
     } catch (error) {
       console.error('Failed to cleanup expired sessions:', error);

@@ -13,13 +13,13 @@ const router = Router();
 router.post('/heartbeat', async (req: Request, res: Response): Promise<void> => {
   try {
     console.log('🔔 Client heartbeat received:', req.body);
-    const { sessionToken, quotaUsed, timestamp } = req.body;
+    const { sessionToken, timestamp } = req.body;
 
     // Validate required fields
-    if (!sessionToken || typeof quotaUsed !== 'number' || !timestamp) {
+    if (!sessionToken || !timestamp) {
       res.status(400).json({
         success: false,
-        error: 'Missing required fields: sessionToken, quotaUsed, timestamp',
+        error: 'Missing required fields: sessionToken, timestamp',
       });
       return;
     }
@@ -60,11 +60,11 @@ router.post('/heartbeat', async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // Process heartbeat
+    // Process heartbeat (quotaUsed will be calculated server-side)
     const heartbeatData: HeartbeatData = {
       sessionId: tokenData.sessionId,
       timestamp: timestamp,
-      quotaUsed
+      quotaUsed: 0 // This will be overridden by server-side calculation
     };
 
     const result = await usageService.processHeartbeat(heartbeatData);

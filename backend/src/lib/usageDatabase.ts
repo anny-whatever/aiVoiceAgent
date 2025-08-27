@@ -337,6 +337,34 @@ class UsageDatabase {
     });
   }
 
+  async getAllActiveSessions(): Promise<ActiveSession[]> {
+    if (this.useJsonFallback) {
+      return Array.from(this.jsonFallback.sessions.values());
+    }
+
+    return new Promise((resolve, reject) => {
+      this.db!.all(
+        'SELECT * FROM active_sessions',
+        [],
+        (err: Error | null, rows: any[]) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows.map(row => ({
+              sessionId: row.session_id,
+              userId: row.user_id,
+              startTime: row.start_time,
+              lastHeartbeat: row.last_heartbeat,
+              quotaUsed: row.quota_used,
+              tokenExpiry: row.token_expiry,
+              ipAddress: row.ip_address,
+            })));
+          }
+        }
+      );
+    });
+  }
+
   async createActiveSession(session: ActiveSession): Promise<void> {
     if (this.useJsonFallback) {
       this.jsonFallback.sessions.set(session.sessionId, session);

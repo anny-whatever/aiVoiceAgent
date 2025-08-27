@@ -50,15 +50,12 @@ class HeartbeatService {
   }
 
   private async sendHeartbeat() {
-    if (!this.isActive || !this.sessionToken || !this.sessionStartTime) {
+    if (!this.isActive || !this.sessionToken) {
       return;
     }
 
     try {
-      const quotaUsed = Math.floor((Date.now() - this.sessionStartTime) / 1000);
-      
       await ApiService.sendHeartbeat({
-        quotaUsed,
         timestamp: Date.now(),
         sessionToken: this.sessionToken
       });

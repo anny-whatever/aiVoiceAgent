@@ -119,7 +119,7 @@ export class ApiService {
     return response.json();
   }
 
-  static async sendHeartbeat(args: { quotaUsed: number; timestamp: number; sessionToken: string }): Promise<ApiResponse> {
+  static async sendHeartbeat(args: { timestamp: number; sessionToken: string }): Promise<ApiResponse> {
     const response = await fetch(`${BACKEND_URL}/api/heartbeat`, {
       method: "POST",
       headers: this.getAuthHeaders(),
