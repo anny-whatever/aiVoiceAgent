@@ -13,7 +13,9 @@
       "infoPlist": {
         "NSMicrophoneUsageDescription": "This app uses the microphone to communicate with the AI voice agent.",
         "NSCameraUsageDescription": "This app may use the camera for video communication features."
-      }
+      },
+      "bitcode": false,
+      "bundleIdentifier": "com.anonymous.voiceAgent"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,8 +30,10 @@
         "android.permission.INTERNET",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.WAKE_LOCK",
-        "android.permission.BLUETOOTH"
-      ]
+        "android.permission.BLUETOOTH",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "package": "com.anonymous.voiceAgent"
     },
     "web": {
       "bundler": "metro",
