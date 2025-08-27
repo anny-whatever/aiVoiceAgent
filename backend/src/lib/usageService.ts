@@ -48,9 +48,29 @@ class UsageService {
       };
     }
 
-    // Check concurrent sessions
+    // Check concurrent sessions and clean up stale ones
     const activeSessions = await usageDB.getUserActiveSessions(userId);
-    if (activeSessions.length >= limits.maxConcurrentSessions) {
+    
+    // Clean up sessions that haven't sent heartbeats for more than 10 minutes
+    const staleThreshold = Date.now() - (10 * 60 * 1000); // 10 minutes ago
+    const staleSessions = activeSessions.filter(session => {
+      const lastHeartbeat = new Date(session.lastHeartbeat).getTime();
+      return lastHeartbeat < staleThreshold;
+    });
+    
+    // Remove stale sessions
+    for (const staleSession of staleSessions) {
+      await usageDB.deleteActiveSession(staleSession.sessionId);
+      console.log(`🧹 Cleaned up stale session: ${staleSession.sessionId}`);
+    }
+    
+    // Get updated active sessions count after cleanup
+    const currentActiveSessions = activeSessions.filter(session => {
+      const lastHeartbeat = new Date(session.lastHeartbeat).getTime();
+      return lastHeartbeat >= staleThreshold;
+    });
+    
+    if (currentActiveSessions.length >= limits.maxConcurrentSessions) {
       return {
         allowed: false,
         reason: `Maximum concurrent sessions (${limits.maxConcurrentSessions}) reached`,

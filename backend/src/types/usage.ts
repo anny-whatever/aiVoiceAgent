@@ -55,7 +55,7 @@ export interface QuotaWarning {
 
 // Default limits
 export const DEFAULT_LIMITS: Omit<UserLimits, 'userId'> = {
-  dailyLimitSeconds: 30 * 60, // 30 minutes
+  dailyLimitSeconds: 15 * 60, // 15 minutes
   sessionLimitSeconds: 15 * 60, // 15 minutes
   maxConcurrentSessions: 3,
   enabled: true,

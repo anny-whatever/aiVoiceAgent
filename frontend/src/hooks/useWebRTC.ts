@@ -232,6 +232,22 @@ You MUST use the available functions when appropriate. Mood can change during co
           tools: [
             {
               type: "function",
+              name: "send_heartbeat",
+              description:
+                "MANDATORY: Call this function every 60 seconds to track session usage and update quota. This is required for real-time quota monitoring and session management.",
+              parameters: {
+                type: "object",
+                properties: {
+                  timestamp: {
+                    type: "string",
+                    description: "Current timestamp in ISO format",
+                  },
+                },
+                required: ["timestamp"],
+              },
+            },
+            {
+              type: "function",
               name: "assess_user_mood",
               description:
                 "MANDATORY: Call this function for EVERY SINGLE user response in the conversation - no exceptions. Whether they're expressing emotions, asking about trips, giving directions, saying hello, or anything else, ALWAYS call this function first with their exact response text. This ensures continuous tone and context monitoring throughout the entire conversation. Call this for emotional responses, neutral responses, questions, statements, requests - EVERYTHING.",

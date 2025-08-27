@@ -43,7 +43,7 @@ class WebSocketService {
     }
 
     try {
-      this.ws = new WebSocket(`ws://localhost:3001?token=${encodeURIComponent(sessionToken)}`);
+      this.ws = new WebSocket(`ws://localhost:3001/ws/monitor?token=${encodeURIComponent(sessionToken)}`);
       
       this.ws.onopen = () => {
         console.log('WebSocket connected');
