@@ -10,6 +10,7 @@ import {
   QuotaWarning,
   DEFAULT_LIMITS,
   TOKEN_CONFIG,
+  SESSION_TIME_CONFIG,
 } from '../types/usage.js';
 
 class UsageService {
@@ -79,30 +80,43 @@ class UsageService {
       };
     }
 
-    // Check daily quota
+    // Get or initialize session time tracking
     const today = new Date().toISOString().split('T')[0];
-    const todayUsage = await usageDB.getUserUsage(userId, today);
-    const usedToday = todayUsage?.totalSeconds || 0;
-    const dailyRemaining = Math.max(0, limits.dailyLimitSeconds - usedToday);
+    let todayUsage = await usageDB.getUserUsage(userId, today);
+    
+    // Initialize usage record if it doesn't exist
+    if (!todayUsage) {
+      todayUsage = {
+        userId,
+        date: today,
+        totalSeconds: 0,
+        sessionsCount: 0,
+        lastReset: new Date().toISOString(),
+        sessionTimeRemaining: SESSION_TIME_CONFIG.INITIAL_SESSION_TIME,
+      };
+      await usageDB.updateUserUsage(todayUsage);
+    }
 
-    if (dailyRemaining <= 0) {
+    // Check if we have any session time remaining
+    const sessionTimeRemaining = todayUsage.sessionTimeRemaining || 0;
+    
+    if (sessionTimeRemaining < SESSION_TIME_CONFIG.MIN_SESSION_TIME) {
       return {
         allowed: false,
-        reason: 'Daily quota exceeded',
+        reason: 'No session time remaining',
         quotaRemaining: 0,
         sessionTimeRemaining: 0,
       };
     }
 
-    // Session time remaining should be the daily remaining quota
-    // This ensures cumulative usage tracking across sessions
-    const sessionTimeRemaining = dailyRemaining;
-    const warningThreshold = sessionTimeRemaining <= TOKEN_CONFIG.WARNING_THRESHOLD_SECONDS;
+    // Cap session time to maximum allowed
+    const actualSessionTime = Math.min(sessionTimeRemaining, SESSION_TIME_CONFIG.MAX_SESSION_TIME);
+    const warningThreshold = actualSessionTime <= TOKEN_CONFIG.WARNING_THRESHOLD_SECONDS;
 
     return {
       allowed: true,
-      quotaRemaining: dailyRemaining,
-      sessionTimeRemaining,
+      quotaRemaining: actualSessionTime,
+      sessionTimeRemaining: actualSessionTime,
       warningThreshold,
     };
   }
@@ -141,7 +155,7 @@ class UsageService {
     return {
       token,
       sessionToken,
-      quotaRemaining: validation.quotaRemaining,
+      quotaRemaining: validation.sessionTimeRemaining,
     };
   }
 
@@ -192,27 +206,34 @@ class UsageService {
       quotaUsed: heartbeatData.quotaUsed,
     });
 
-    // Check if approaching limits based on daily quota
-    const limits = await usageDB.getUserLimits(activeSession.userId);
+    // Get current usage and calculate remaining session time
     const today = new Date().toISOString().split('T')[0];
     const todayUsage = await usageDB.getUserUsage(activeSession.userId, today);
-    const usedToday = (todayUsage?.totalSeconds || 0) + heartbeatData.quotaUsed;
-    const dailyRemaining = Math.max(0, limits.dailyLimitSeconds - usedToday);
+    const sessionTimeRemaining = Math.max(0, (todayUsage?.sessionTimeRemaining || 0) - heartbeatData.quotaUsed);
+
+    // Update the usage record with new remaining time
+    if (todayUsage) {
+      const updatedUsage: UserUsage = {
+        ...todayUsage,
+        sessionTimeRemaining,
+      };
+      await usageDB.updateUserUsage(updatedUsage);
+    }
 
     // Generate warning if approaching limits
     let warning: QuotaWarning | undefined;
     
-    if (dailyRemaining <= TOKEN_CONFIG.WARNING_THRESHOLD_SECONDS && dailyRemaining > 0) {
+    if (sessionTimeRemaining <= TOKEN_CONFIG.WARNING_THRESHOLD_SECONDS && sessionTimeRemaining > 0) {
       warning = {
         type: 'QUOTA_WARNING',
-        remaining: dailyRemaining,
-        message: `Daily quota will be exhausted in ${Math.floor(dailyRemaining / 60)} minutes`,
+        remaining: sessionTimeRemaining,
+        message: `Session will end in ${Math.floor(sessionTimeRemaining / 60)} minutes`,
       };
-    } else if (dailyRemaining <= 0) {
+    } else if (sessionTimeRemaining <= 0) {
       warning = {
         type: 'QUOTA_EXCEEDED',
         remaining: 0,
-        message: 'Daily quota exceeded',
+        message: 'Session time exceeded',
       };
       
       // End the session
@@ -236,16 +257,24 @@ class UsageService {
     const today = new Date().toISOString().split('T')[0];
     const existingUsage = await usageDB.getUserUsage(activeSession.userId, today);
     
+    // Calculate remaining time after this session
+    const timeUsedInSession = activeSession.quotaUsed;
+    const currentRemaining = existingUsage?.sessionTimeRemaining || SESSION_TIME_CONFIG.INITIAL_SESSION_TIME;
+    const newRemaining = Math.max(0, currentRemaining - timeUsedInSession);
+    
     const updatedUsage: UserUsage = {
       userId: activeSession.userId,
       date: today,
-      totalSeconds: (existingUsage?.totalSeconds || 0) + activeSession.quotaUsed,
+      totalSeconds: (existingUsage?.totalSeconds || 0) + timeUsedInSession,
       sessionsCount: (existingUsage?.sessionsCount || 0) + 1,
       lastReset: existingUsage?.lastReset || new Date().toISOString(),
+      sessionTimeRemaining: newRemaining,
     };
 
     await usageDB.updateUserUsage(updatedUsage);
     await usageDB.deleteActiveSession(sessionId);
+
+    console.log(`📊 Session ${sessionId} ended. User ${activeSession.userId} used ${timeUsedInSession}s, ${newRemaining}s remaining`);
   }
 
   /**
@@ -329,6 +358,7 @@ class UsageService {
       totalSeconds: 0,
       sessionsCount: 0,
       lastReset: new Date().toISOString(),
+      sessionTimeRemaining: SESSION_TIME_CONFIG.INITIAL_SESSION_TIME,
     };
     
     await usageDB.updateUserUsage(resetUsage);

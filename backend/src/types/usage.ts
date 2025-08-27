@@ -4,6 +4,7 @@ export interface UserUsage {
   totalSeconds: number;
   sessionsCount: number;
   lastReset: string; // ISO timestamp
+  sessionTimeRemaining: number; // Remaining session time in seconds
 }
 
 export interface UserLimits {
@@ -56,9 +57,16 @@ export interface QuotaWarning {
 // Default limits
 export const DEFAULT_LIMITS: Omit<UserLimits, 'userId'> = {
   dailyLimitSeconds: 15 * 60, // 15 minutes
-  sessionLimitSeconds: 15 * 60, // 15 minutes
+  sessionLimitSeconds: 15 * 60, // 15 minutes (initial allocation)
   maxConcurrentSessions: 3,
   enabled: true,
+};
+
+// Session time management constants
+export const SESSION_TIME_CONFIG = {
+  INITIAL_SESSION_TIME: 15 * 60, // 15 minutes initial allocation
+  MIN_SESSION_TIME: 30, // Minimum 30 seconds for a session
+  MAX_SESSION_TIME: 60 * 60, // Maximum 1 hour per session
 };
 
 // Token configuration

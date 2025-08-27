@@ -38,7 +38,7 @@ router.post("/session", validateSessionCreation, async (req, res) => {
       });
     }
 
-    // Get user limits to send correct daily limit to frontend
+    // Get user stats for session info
     const userStats = await usageService.getUserStats(userId);
 
     const r = await fetch("https://api.openai.com/v1/realtime/sessions", {
@@ -90,7 +90,7 @@ router.post("/session", validateSessionCreation, async (req, res) => {
       sessionId: payload.id,
       sessionToken: sessionResult.token,
       quotaRemaining: sessionResult.quotaRemaining,
-      sessionTimeLimit: userStats.limits.dailyLimitSeconds,
+      sessionTimeLimit: sessionResult.quotaRemaining, // Use remaining session time as limit
       warningThreshold: validation.warningThreshold,
     });
   } catch (e: any) {

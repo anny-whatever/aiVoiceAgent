@@ -52,46 +52,75 @@ class UsageDatabase {
           return;
         }
 
-        // Create tables
-        const createTables = `
-          CREATE TABLE IF NOT EXISTS user_usage (
-            user_id TEXT,
-            date TEXT,
-            total_seconds INTEGER DEFAULT 0,
-            sessions_count INTEGER DEFAULT 0,
-            last_reset TEXT,
-            PRIMARY KEY (user_id, date)
-          );
-
-          CREATE TABLE IF NOT EXISTS user_limits (
-            user_id TEXT PRIMARY KEY,
-            daily_limit_seconds INTEGER DEFAULT ${DEFAULT_LIMITS.dailyLimitSeconds},
-            session_limit_seconds INTEGER DEFAULT ${DEFAULT_LIMITS.sessionLimitSeconds},
-            max_concurrent_sessions INTEGER DEFAULT ${DEFAULT_LIMITS.maxConcurrentSessions},
-            enabled INTEGER DEFAULT 1
-          );
-
-          CREATE TABLE IF NOT EXISTS active_sessions (
-            session_id TEXT PRIMARY KEY,
-            user_id TEXT,
-            start_time TEXT,
-            last_heartbeat TEXT,
-            quota_used INTEGER DEFAULT 0,
-            token_expiry INTEGER,
-            ip_address TEXT
-          );
-
-          CREATE INDEX IF NOT EXISTS idx_user_usage_date ON user_usage(user_id, date);
-          CREATE INDEX IF NOT EXISTS idx_active_sessions_user ON active_sessions(user_id);
-          CREATE INDEX IF NOT EXISTS idx_active_sessions_expiry ON active_sessions(token_expiry);
-        `;
-
-        this.db!.exec(createTables, (err: Error | null) => {
+        // First, check if we need to migrate existing tables
+        this.db!.get("PRAGMA table_info(user_usage)", (err: Error | null, result: any) => {
           if (err) {
             reject(err);
-          } else {
-            resolve();
+            return;
           }
+
+          // Check if session_time_remaining column exists
+          this.db!.all("PRAGMA table_info(user_usage)", (err: Error | null, columns: any[]) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            const hasSessionTimeColumn = columns && columns.some(col => col.name === 'session_time_remaining');
+            
+            let migrationSQL = '';
+            if (columns && columns.length > 0 && !hasSessionTimeColumn) {
+              // Table exists but missing the column - add it
+              migrationSQL = 'ALTER TABLE user_usage ADD COLUMN session_time_remaining INTEGER DEFAULT 0;';
+              console.log('🔧 Adding missing session_time_remaining column to user_usage table');
+            }
+
+            // Create tables and run migration
+            const createTables = `
+              ${migrationSQL}
+              
+              CREATE TABLE IF NOT EXISTS user_usage (
+                user_id TEXT,
+                date TEXT,
+                total_seconds INTEGER DEFAULT 0,
+                sessions_count INTEGER DEFAULT 0,
+                last_reset TEXT,
+                session_time_remaining INTEGER DEFAULT 0,
+                PRIMARY KEY (user_id, date)
+              );
+
+              CREATE TABLE IF NOT EXISTS user_limits (
+                user_id TEXT PRIMARY KEY,
+                daily_limit_seconds INTEGER DEFAULT ${DEFAULT_LIMITS.dailyLimitSeconds},
+                session_limit_seconds INTEGER DEFAULT ${DEFAULT_LIMITS.sessionLimitSeconds},
+                max_concurrent_sessions INTEGER DEFAULT ${DEFAULT_LIMITS.maxConcurrentSessions},
+                enabled INTEGER DEFAULT 1
+              );
+
+              CREATE TABLE IF NOT EXISTS active_sessions (
+                session_id TEXT PRIMARY KEY,
+                user_id TEXT,
+                start_time TEXT,
+                last_heartbeat TEXT,
+                quota_used INTEGER DEFAULT 0,
+                token_expiry INTEGER,
+                ip_address TEXT
+              );
+
+              CREATE INDEX IF NOT EXISTS idx_user_usage_date ON user_usage(user_id, date);
+              CREATE INDEX IF NOT EXISTS idx_active_sessions_user ON active_sessions(user_id);
+              CREATE INDEX IF NOT EXISTS idx_active_sessions_expiry ON active_sessions(token_expiry);
+            `;
+
+            this.db!.exec(createTables, (err: Error | null) => {
+              if (err) {
+                reject(err);
+              } else {
+                console.log('✅ Database schema updated successfully');
+                resolve();
+              }
+            });
+          });
         });
       });
     });
@@ -157,6 +186,7 @@ class UsageDatabase {
               totalSeconds: row.total_seconds,
               sessionsCount: row.sessions_count,
               lastReset: row.last_reset,
+              sessionTimeRemaining: row.session_time_remaining || 0,
             } : null);
           }
         }
@@ -175,9 +205,9 @@ class UsageDatabase {
     return new Promise((resolve, reject) => {
       this.db!.run(
         `INSERT OR REPLACE INTO user_usage 
-         (user_id, date, total_seconds, sessions_count, last_reset) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [usage.userId, usage.date, usage.totalSeconds, usage.sessionsCount, usage.lastReset],
+         (user_id, date, total_seconds, sessions_count, last_reset, session_time_remaining) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [usage.userId, usage.date, usage.totalSeconds, usage.sessionsCount, usage.lastReset, usage.sessionTimeRemaining],
         (err: Error | null) => {
           if (err) {
             reject(err);

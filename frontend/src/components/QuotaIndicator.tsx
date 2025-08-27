@@ -31,9 +31,9 @@ export const QuotaIndicator: React.FC<QuotaIndicatorProps> = ({
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-white/80">Session Time</span>
+        <span className="text-sm font-medium text-white/80">Session Time Remaining</span>
         <span className={`text-sm font-bold ${getTextColor()}`}>
-          {formatTime(remaining)} / {formatTime(total)}
+          {formatTime(remaining)}
         </span>
       </div>
       
@@ -47,14 +47,14 @@ export const QuotaIndicator: React.FC<QuotaIndicatorProps> = ({
       {isCritical && (
         <div className="flex items-center text-red-400 text-xs">
           <span className="mr-1">⚠️</span>
-          <span>Session will end soon!</span>
+          <span>Session ending soon!</span>
         </div>
       )}
       
       {isWarning && !isCritical && (
         <div className="flex items-center text-yellow-400 text-xs">
           <span className="mr-1">⏰</span>
-          <span>Low time remaining</span>
+          <span>Session time running low</span>
         </div>
       )}
     </div>

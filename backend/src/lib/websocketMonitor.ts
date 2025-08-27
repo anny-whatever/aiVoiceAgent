@@ -59,7 +59,7 @@ class WebSocketMonitor {
       const { sessionId, userId } = sessionToken;
       
       // Check if session exists and is active
-      const sessionExists = await usageService.validateSession(sessionId);
+      const sessionExists = await usageService.validateSession(token);
       if (!sessionExists.valid) {
         ws.close(4003, 'Session not found or expired');
         return;

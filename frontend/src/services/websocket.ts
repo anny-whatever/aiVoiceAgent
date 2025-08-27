@@ -32,6 +32,12 @@ class WebSocketService {
     onQuotaWarning?: (warning: QuotaWarning) => void;
     onSessionTerminated?: (reason: string) => void;
   }) {
+    // Clean up existing connection first
+    if (this.ws && this.ws.readyState !== WebSocket.CLOSED) {
+      this.ws.close();
+      this.ws = null;
+    }
+
     this.onQuotaUpdate = callbacks.onQuotaUpdate;
     this.onQuotaWarning = callbacks.onQuotaWarning;
     this.onSessionTerminated = callbacks.onSessionTerminated;
@@ -96,6 +102,11 @@ class WebSocketService {
   private attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error('Max reconnection attempts reached');
+      return;
+    }
+
+    // Don't reconnect if already connected or connecting
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return;
     }
 

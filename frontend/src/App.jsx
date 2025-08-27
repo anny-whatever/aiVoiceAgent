@@ -66,6 +66,8 @@ export default function App() {
           // Initialize WebSocket connection for quota updates
           quota.initializeWebSocket();
           quota.updateQuotaStatus();
+          // Start the live timer countdown
+          quota.startTimer();
         }
       );
 
@@ -83,8 +85,18 @@ export default function App() {
   const handleStop = () => {
     webRTC.disconnect();
     mood.clearMood();
+    // Stop the timer and reset session
+    quota.stopTimer();
     quota.resetSession();
   };
+
+  // Handle automatic session termination
+  useEffect(() => {
+    if (quota.isSessionTerminated && webRTC.connectionStatus.isConnected) {
+      console.log('Session terminated due to time limit, disconnecting...');
+      handleStop();
+    }
+  }, [quota.isSessionTerminated, webRTC.connectionStatus.isConnected]);
 
   // Cleanup on unmount
   useEffect(() => () => handleStop(), []);
