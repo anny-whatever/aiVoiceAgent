@@ -33,7 +33,7 @@ export const QuotaIndicator: React.FC<QuotaIndicatorProps> = ({
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-white/80">Session Time Remaining</span>
         <span className={`text-sm font-bold ${getTextColor()}`}>
-          {formatTime(remaining)}
+          {formatTime(remaining)} / {formatTime(total)}
         </span>
       </div>
       

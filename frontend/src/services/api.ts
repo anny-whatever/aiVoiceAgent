@@ -118,6 +118,21 @@ export class ApiService {
 
     return response.json();
   }
+
+  static async sendHeartbeat(args: { quotaUsed: number; timestamp: number; sessionToken: string }): Promise<ApiResponse> {
+    const response = await fetch(`${BACKEND_URL}/api/heartbeat`, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(args),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Backend error: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
 }
 
 export { BACKEND_URL };

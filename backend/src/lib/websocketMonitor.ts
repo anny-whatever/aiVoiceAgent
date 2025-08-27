@@ -138,7 +138,7 @@ class WebSocketMonitor {
         type: 'status',
         sessionId: session.sessionId,
         quotaRemaining: stats.quotaRemaining,
-        dailyUsage: stats.dailyUsage,
+        monthlyUsage: stats.monthlyUsage,
         timestamp: Date.now()
       });
     } catch (error) {

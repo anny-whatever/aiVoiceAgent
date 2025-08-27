@@ -6,6 +6,7 @@ import {
   sendResponseCreate,
 } from "../webrtc";
 import { ApiService } from "../services/api";
+import { heartbeatService } from "../services/heartbeatService";
 
 export const useWebRTC = () => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
@@ -96,6 +97,9 @@ export const useWebRTC = () => {
   );
 
   const disconnect = useCallback(() => {
+    // Stop heartbeat service
+    heartbeatService.stop();
+    
     try {
       dcRef.current?.close();
       pcRef.current?.close();
@@ -133,6 +137,15 @@ export const useWebRTC = () => {
       dc.onopen = () => {
         setIsConnected(true);
         setStatus("Connected — Setting up AI...");
+
+        // Start heartbeat service
+        const sessionToken = ApiService.getSessionManager().getSessionToken();
+        if (sessionToken) {
+          heartbeatService.start(sessionToken, () => {
+            // Handle session termination
+            disconnect();
+          });
+        }
 
         // Find the actual user name from users array
         const currentUser = users.find((user) => user.id === selectedUser);
@@ -230,22 +243,6 @@ DO NOT ask about "how the day is going" - ask specifically about FEELINGS and MO
 
 You MUST use the available functions when appropriate. Mood can change during conversations - always stay alert for emotional content.`,
           tools: [
-            {
-              type: "function",
-              name: "send_heartbeat",
-              description:
-                "MANDATORY: Call this function every 60 seconds to track session usage and update quota. This is required for real-time quota monitoring and session management.",
-              parameters: {
-                type: "object",
-                properties: {
-                  timestamp: {
-                    type: "string",
-                    description: "Current timestamp in ISO format",
-                  },
-                },
-                required: ["timestamp"],
-              },
-            },
             {
               type: "function",
               name: "assess_user_mood",

@@ -16,7 +16,6 @@ export const useQuota = () => {
   const [terminationReason, setTerminationReason] = useState<string | null>(null);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const timerRef = useRef<number | null>(null);
-  const lastUpdateRef = useRef<number>(Date.now());
 
   const updateQuotaStatus = useCallback(() => {
     const sessionManager = ApiService.getSessionManager();
@@ -38,25 +37,11 @@ export const useQuota = () => {
     }
     
     setIsTimerActive(true);
-    lastUpdateRef.current = Date.now();
     
+    // Just update the display every second, don't manually decrement
+    // The backend heartbeat system handles the actual time tracking
     timerRef.current = setInterval(() => {
-      const now = Date.now();
-      const elapsed = Math.floor((now - lastUpdateRef.current) / 1000);
-      
-      if (elapsed >= 1) {
-        const sessionManager = ApiService.getSessionManager();
-        const currentStatus = sessionManager.getQuotaStatus();
-        const newRemaining = Math.max(0, currentStatus.remaining - elapsed);
-        
-        // Update the session manager with new remaining time
-        sessionManager.updateQuota(newRemaining);
-        
-        // Update our local state
-        updateQuotaStatus();
-        
-        lastUpdateRef.current = now;
-      }
+      updateQuotaStatus();
     }, 1000);
   }, [updateQuotaStatus]);
   

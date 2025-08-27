@@ -81,24 +81,24 @@ class UsageService {
     }
 
     // Get or initialize session time tracking
-    const today = new Date().toISOString().split('T')[0];
-    let todayUsage = await usageDB.getUserUsage(userId, today);
+    const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
+    let monthlyUsage = await usageDB.getUserUsage(userId, currentMonth);
     
     // Initialize usage record if it doesn't exist
-    if (!todayUsage) {
-      todayUsage = {
+    if (!monthlyUsage) {
+      monthlyUsage = {
         userId,
-        date: today,
+        month: currentMonth,
         totalSeconds: 0,
         sessionsCount: 0,
         lastReset: new Date().toISOString(),
         sessionTimeRemaining: SESSION_TIME_CONFIG.INITIAL_SESSION_TIME,
       };
-      await usageDB.updateUserUsage(todayUsage);
+      await usageDB.updateUserUsage(monthlyUsage);
     }
 
     // Check if we have any session time remaining
-    const sessionTimeRemaining = todayUsage.sessionTimeRemaining || 0;
+    const sessionTimeRemaining = monthlyUsage.sessionTimeRemaining || 0;
     
     if (sessionTimeRemaining < SESSION_TIME_CONFIG.MIN_SESSION_TIME) {
       return {
@@ -194,6 +194,7 @@ class UsageService {
    * Processes a heartbeat from the AI
    */
   async processHeartbeat(heartbeatData: HeartbeatData): Promise<{ success: boolean; warning?: QuotaWarning }> {
+    console.log('💓 Processing heartbeat for session:', heartbeatData.sessionId, 'quotaUsed:', heartbeatData.quotaUsed);
     const activeSession = await usageDB.getActiveSession(heartbeatData.sessionId);
     
     if (!activeSession) {
@@ -207,14 +208,14 @@ class UsageService {
     });
 
     // Get current usage and calculate remaining session time
-    const today = new Date().toISOString().split('T')[0];
-    const todayUsage = await usageDB.getUserUsage(activeSession.userId, today);
-    const sessionTimeRemaining = Math.max(0, (todayUsage?.sessionTimeRemaining || 0) - heartbeatData.quotaUsed);
+    const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
+    const monthlyUsage = await usageDB.getUserUsage(activeSession.userId, currentMonth);
+    const sessionTimeRemaining = Math.max(0, (monthlyUsage?.sessionTimeRemaining || 0) - heartbeatData.quotaUsed);
 
     // Update the usage record with new remaining time
-    if (todayUsage) {
+    if (monthlyUsage) {
       const updatedUsage: UserUsage = {
-        ...todayUsage,
+        ...monthlyUsage,
         sessionTimeRemaining,
       };
       await usageDB.updateUserUsage(updatedUsage);
@@ -253,9 +254,9 @@ class UsageService {
       return;
     }
 
-    // Update daily usage statistics
-    const today = new Date().toISOString().split('T')[0];
-    const existingUsage = await usageDB.getUserUsage(activeSession.userId, today);
+    // Update monthly usage statistics
+    const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
+    const existingUsage = await usageDB.getUserUsage(activeSession.userId, currentMonth);
     
     // Calculate remaining time after this session
     const timeUsedInSession = activeSession.quotaUsed;
@@ -264,7 +265,7 @@ class UsageService {
     
     const updatedUsage: UserUsage = {
       userId: activeSession.userId,
-      date: today,
+      month: currentMonth,
       totalSeconds: (existingUsage?.totalSeconds || 0) + timeUsedInSession,
       sessionsCount: (existingUsage?.sessionsCount || 0) + 1,
       lastReset: existingUsage?.lastReset || new Date().toISOString(),
@@ -281,23 +282,23 @@ class UsageService {
    * Gets current usage statistics for a user
    */
   async getUserStats(userId: string): Promise<{
-    dailyUsage: UserUsage | null;
+    monthlyUsage: UserUsage | null;
     limits: UserLimits;
     activeSessions: ActiveSession[];
     quotaRemaining: number;
   }> {
-    const today = new Date().toISOString().split('T')[0];
-    const [dailyUsage, limits, activeSessions] = await Promise.all([
-      usageDB.getUserUsage(userId, today),
+    const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
+    const [monthlyUsage, limits, activeSessions] = await Promise.all([
+      usageDB.getUserUsage(userId, currentMonth),
       usageDB.getUserLimits(userId),
       usageDB.getUserActiveSessions(userId),
     ]);
 
-    const usedToday = dailyUsage?.totalSeconds || 0;
-    const quotaRemaining = Math.max(0, limits.dailyLimitSeconds - usedToday);
+    const usedThisMonth = monthlyUsage?.totalSeconds || 0;
+    const quotaRemaining = Math.max(0, limits.monthlyLimitSeconds - usedThisMonth);
 
     return {
-      dailyUsage,
+      monthlyUsage,
       limits,
       activeSessions,
       quotaRemaining,
@@ -350,11 +351,11 @@ class UsageService {
   /**
    * Reset daily usage for a user (admin function)
    */
-  async resetDailyUsage(userId: string): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
+  async resetMonthlyUsage(userId: string): Promise<void> {
+    const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
     const resetUsage: UserUsage = {
       userId,
-      date: today,
+      month: currentMonth,
       totalSeconds: 0,
       sessionsCount: 0,
       lastReset: new Date().toISOString(),

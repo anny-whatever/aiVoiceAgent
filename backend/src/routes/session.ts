@@ -4,7 +4,7 @@ import { ENV } from "../config/env";
 import { getUserData } from "../lib/drivingData";
 import { usageService } from "../lib/usageService.js";
 import { validateSessionCreation, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
-import { heartbeatToolDefinition } from "../tools/heartbeat.js";
+
 
 const router = Router();
 
@@ -51,9 +51,8 @@ router.post("/session", validateSessionCreation, async (req, res) => {
       body: JSON.stringify({
         model: "gpt-4o-mini-realtime-preview-2024-12-17",
         voice: "alloy",
-        // Add mandatory heartbeat tool for usage tracking
-        tools: [heartbeatToolDefinition],
-        instructions: `${userData.instructions}\n\nIMPORTANT USAGE TRACKING: You MUST call the send_heartbeat function every 60 seconds during our conversation. This tracks usage time and is required for session management. The quotaUsed parameter should be the total seconds of conversation time since we started.\n\nStart the conversation by asking the user how they're feeling today to assess their mood. Use the assess_user_mood tool to analyze their response and adapt your tone accordingly.\n\nYour session has a time limit of ${Math.floor(validation.sessionTimeRemaining / 60)} minutes. If you receive an END_SESSION action from any tool call, you must immediately end the conversation politely.`,
+        tools: [],
+        instructions: `${userData.instructions}\n\nStart the conversation by asking the user how they're feeling today to assess their mood. Use the assess_user_mood tool to analyze their response and adapt your tone accordingly.\n\nYour session has a time limit of ${Math.floor(validation.sessionTimeRemaining / 60)} minutes. If you receive an END_SESSION action from any tool call, you must immediately end the conversation politely.`,
       }),
     });
 
@@ -90,7 +89,7 @@ router.post("/session", validateSessionCreation, async (req, res) => {
       sessionId: payload.id,
       sessionToken: sessionResult.token,
       quotaRemaining: sessionResult.quotaRemaining,
-      sessionTimeLimit: sessionResult.quotaRemaining, // Use remaining session time as limit
+      sessionTimeLimit: validation.sessionTimeRemaining, // Use initial session time as total limit
       warningThreshold: validation.warningThreshold,
     });
   } catch (e: any) {

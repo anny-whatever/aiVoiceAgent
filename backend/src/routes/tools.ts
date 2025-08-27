@@ -6,7 +6,7 @@ import {
   generateMoodInstructions,
 } from "../lib/moodSystem";
 import { UserMood } from "../types/mood";
-import { handleHeartbeat, injectSessionToken } from "../tools/heartbeat.js";
+
 import { validateSessionToken, trackToolUsage, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
 
 const router = Router();
@@ -15,8 +15,7 @@ const router = Router();
 router.use(sessionCors);
 router.use(addSessionHeaders);
 
-// Heartbeat endpoint (mandatory for usage tracking)
-router.post("/tools/send_heartbeat", injectSessionToken, handleHeartbeat);
+
 
 /** Get available users */
 router.get("/users", (_req, res) => {

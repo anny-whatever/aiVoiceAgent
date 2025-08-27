@@ -7,6 +7,7 @@ import { loadDrivingData } from "./lib/drivingData";
 import { ENV } from "./config/env";
 import sessionRouter from "./routes/session";
 import toolsRouter from "./routes/tools";
+import heartbeatRouter from "./routes/heartbeat.js";
 import { usageService } from "./lib/usageService.js";
 import { websocketMonitor } from "./lib/websocketMonitor.js";
 
@@ -54,6 +55,7 @@ app.get("/health", (_req, res) => res.json({ status: "ok" }));
 // API routes
 app.use("/api", sessionRouter);
 app.use("/api", toolsRouter);
+app.use("/api", heartbeatRouter);
 
 // Agent status
 app.get("/api/agent", (_req, res) => {

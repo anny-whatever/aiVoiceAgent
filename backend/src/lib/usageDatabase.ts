@@ -81,17 +81,17 @@ class UsageDatabase {
               
               CREATE TABLE IF NOT EXISTS user_usage (
                 user_id TEXT,
-                date TEXT,
+                month TEXT,
                 total_seconds INTEGER DEFAULT 0,
                 sessions_count INTEGER DEFAULT 0,
                 last_reset TEXT,
                 session_time_remaining INTEGER DEFAULT 0,
-                PRIMARY KEY (user_id, date)
+                PRIMARY KEY (user_id, month)
               );
 
               CREATE TABLE IF NOT EXISTS user_limits (
                 user_id TEXT PRIMARY KEY,
-                daily_limit_seconds INTEGER DEFAULT ${DEFAULT_LIMITS.dailyLimitSeconds},
+                monthly_limit_seconds INTEGER DEFAULT ${DEFAULT_LIMITS.monthlyLimitSeconds},
                 session_limit_seconds INTEGER DEFAULT ${DEFAULT_LIMITS.sessionLimitSeconds},
                 max_concurrent_sessions INTEGER DEFAULT ${DEFAULT_LIMITS.maxConcurrentSessions},
                 enabled INTEGER DEFAULT 1
@@ -166,23 +166,23 @@ class UsageDatabase {
   }
 
   // User Usage Methods
-  async getUserUsage(userId: string, date: string): Promise<UserUsage | null> {
+  async getUserUsage(userId: string, month: string): Promise<UserUsage | null> {
     if (this.useJsonFallback) {
-      const key = `${userId}:${date}`;
+      const key = `${userId}:${month}`;
       return this.jsonFallback.usage.get(key) || null;
     }
 
     return new Promise((resolve, reject) => {
       this.db!.get(
-        'SELECT * FROM user_usage WHERE user_id = ? AND date = ?',
-        [userId, date],
+        'SELECT * FROM user_usage WHERE user_id = ? AND month = ?',
+        [userId, month],
         (err: Error | null, row: any) => {
           if (err) {
             reject(err);
           } else {
             resolve(row ? {
               userId: row.user_id,
-              date: row.date,
+              month: row.month,
               totalSeconds: row.total_seconds,
               sessionsCount: row.sessions_count,
               lastReset: row.last_reset,
@@ -195,8 +195,9 @@ class UsageDatabase {
   }
 
   async updateUserUsage(usage: UserUsage): Promise<void> {
+    console.log('💾 Updating user usage:', usage);
     if (this.useJsonFallback) {
-      const key = `${usage.userId}:${usage.date}`;
+      const key = `${usage.userId}:${usage.month}`;
       this.jsonFallback.usage.set(key, usage);
       await this.saveJSON();
       return;
@@ -205,13 +206,14 @@ class UsageDatabase {
     return new Promise((resolve, reject) => {
       this.db!.run(
         `INSERT OR REPLACE INTO user_usage 
-         (user_id, date, total_seconds, sessions_count, last_reset, session_time_remaining) 
+         (user_id, month, total_seconds, sessions_count, last_reset, session_time_remaining) 
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [usage.userId, usage.date, usage.totalSeconds, usage.sessionsCount, usage.lastReset, usage.sessionTimeRemaining],
+        [usage.userId, usage.month, usage.totalSeconds, usage.sessionsCount, usage.lastReset, usage.sessionTimeRemaining],
         (err: Error | null) => {
           if (err) {
             reject(err);
           } else {
+            console.log('✅ User usage updated in database');
             resolve();
           }
         }
@@ -238,7 +240,7 @@ class UsageDatabase {
           } else {
             resolve(row ? {
               userId: row.user_id,
-              dailyLimitSeconds: row.daily_limit_seconds,
+              monthlyLimitSeconds: row.monthly_limit_seconds,
               sessionLimitSeconds: row.session_limit_seconds,
               maxConcurrentSessions: row.max_concurrent_sessions,
               enabled: Boolean(row.enabled),
@@ -262,9 +264,9 @@ class UsageDatabase {
     return new Promise((resolve, reject) => {
       this.db!.run(
         `INSERT OR REPLACE INTO user_limits 
-         (user_id, daily_limit_seconds, session_limit_seconds, max_concurrent_sessions, enabled) 
+         (user_id, monthly_limit_seconds, session_limit_seconds, max_concurrent_sessions, enabled) 
          VALUES (?, ?, ?, ?, ?)`,
-        [limits.userId, limits.dailyLimitSeconds, limits.sessionLimitSeconds, 
+        [limits.userId, limits.monthlyLimitSeconds, limits.sessionLimitSeconds, 
          limits.maxConcurrentSessions, limits.enabled ? 1 : 0],
         (err: Error | null) => {
           if (err) {
@@ -361,6 +363,7 @@ class UsageDatabase {
   }
 
   async updateActiveSession(sessionId: string, updates: Partial<ActiveSession>): Promise<void> {
+    console.log('📝 Updating active session:', sessionId, 'with:', updates);
     if (this.useJsonFallback) {
       const existing = this.jsonFallback.sessions.get(sessionId);
       if (existing) {
@@ -388,6 +391,7 @@ class UsageDatabase {
           if (err) {
             reject(err);
           } else {
+            console.log('✅ Active session updated in database');
             resolve();
           }
         }
