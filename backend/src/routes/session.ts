@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import { ENV } from "../config/env";
 import { getUserData } from "../lib/drivingData";
 import { usageService } from "../lib/usageService.js";
-import { validateSessionCreation, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
+import { validateApiKey, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
 
 
 const router = Router();
@@ -16,15 +16,27 @@ router.use(addSessionHeaders);
  * Creates an ephemeral Realtime session secret for the browser with usage tracking.
  * NOTE: We *never* send OPENAI_API_KEY to the browser.
  */
-router.post("/session", validateSessionCreation, async (req, res) => {
+router.post("/session", validateApiKey, async (req, res) => {
   try {
-    // Get validation data from middleware
-    const { userId, ipAddress, validation } = req.sessionValidation!;
+    const { userId } = req.body;
+    const ipAddress = req.ip || 'unknown';
 
     if (!userId) {
       return res.status(400).json({
         error: "Missing userId",
         message: "userId is required in request body",
+      });
+    }
+
+    // Validate session creation
+    const validation = await usageService.validateSessionCreation(userId, ipAddress);
+    
+    if (!validation.allowed) {
+      return res.status(429).json({
+        error: 'Session creation denied',
+        reason: validation.reason,
+        quotaRemaining: validation.quotaRemaining,
+        sessionTimeRemaining: validation.sessionTimeRemaining,
       });
     }
 

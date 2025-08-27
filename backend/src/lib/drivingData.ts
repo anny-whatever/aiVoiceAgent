@@ -1,5 +1,5 @@
 import { join } from "path";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 
 export type Trip = {
   id: string;
@@ -48,10 +48,43 @@ export function getUsers(): Array<{id: string, name: string}> {
   }));
 }
 
+export function createUser(userId: string): UserData {
+  const userData: UserData = {
+    name: `User ${userId}`,
+    systemPrompt: `You are Drival, ${userId}'s personal driving assistant and trip analyzer. You have access to all of ${userId}'s driving data. You can provide insights about their driving patterns, analyze their trips, remind them about frequent destinations, calculate their driving statistics, and help them understand their travel habits. You're helpful, personal, and can remember details about their trips.`,
+    instructions: `When ${userId} asks about their trips, driving patterns, or travel history, search through their personal trip data to provide accurate insights and analysis. You can discuss specific trips, calculate totals, identify patterns, and provide personalized recommendations based on their actual driving behavior.`,
+    tripData: {
+      work_commute: [],
+      errands_shopping: [],
+      social_visits: [],
+      entertainment_dining: [],
+      weekend_trips: [],
+      medical_appointments: [],
+      general: []
+    }
+  };
+  
+  // Add user to in-memory data
+  const data = getMultiUserDrivingData();
+  data.users[userId] = userData;
+  
+  // Persist to file
+  try {
+    const dataPath = join(process.cwd(), "data/multi-user-driving-data.json");
+    writeFileSync(dataPath, JSON.stringify(data, null, 2));
+    console.log(`✅ Created new user: ${userId}`);
+  } catch (error) {
+    console.error(`❌ Failed to persist user ${userId}:`, error);
+  }
+  
+  return userData;
+}
+
 export function getUserData(userId: string): UserData {
   const data = getMultiUserDrivingData();
   if (!data.users[userId]) {
-    throw new Error(`User ${userId} not found`);
+    console.log(`🔄 Creating new user: ${userId}`);
+    return createUser(userId);
   }
   return data.users[userId];
 }

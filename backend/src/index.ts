@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { readFileSync } from "fs";
+import { validateApiKey } from "./middleware/sessionMiddleware.js";
 
 dotenv.config();
 
@@ -131,7 +132,7 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 // Get available users
-app.get("/api/users", (req: Request, res: Response) => {
+app.get("/api/users", validateApiKey, (req: Request, res: Response) => {
   try {
     const users = Object.keys(multiUserDrivingData.users).map((userId) => ({
       id: userId,
@@ -150,7 +151,7 @@ app.get("/api/users", (req: Request, res: Response) => {
 // Session creation is now handled by the session router with proper usage tracking
 
 // Tool execution endpoint for trip data queries
-app.post("/api/tools/get_driving_data", (req: Request, res: Response) => {
+app.post("/api/tools/get_driving_data", validateApiKey, (req: Request, res: Response) => {
   console.log("🔧 Tool endpoint called");
   console.log("📋 Request headers:", req.headers);
   console.log("📦 Request body:", JSON.stringify(req.body, null, 2));
@@ -189,7 +190,7 @@ app.post("/api/tools/get_driving_data", (req: Request, res: Response) => {
 });
 
 // Add a test endpoint to verify the tool function works
-app.get("/api/tools/test", (req: Request, res: Response) => {
+app.get("/api/tools/test", validateApiKey, (req: Request, res: Response) => {
   try {
     // Use the first available user for testing
     const firstUserId = Object.keys(multiUserDrivingData.users)[0];
@@ -212,7 +213,7 @@ app.get("/api/tools/test", (req: Request, res: Response) => {
 });
 
 // Agent status
-app.get("/api/agent", (req: Request, res: Response) => {
+app.get("/api/agent", validateApiKey, (req: Request, res: Response) => {
   const totalTrips = multiUserDrivingData?.users
     ? Object.values(multiUserDrivingData.users).reduce(
         (sum: number, user: any) => {

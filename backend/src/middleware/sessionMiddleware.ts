@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { usageService } from '../lib/usageService.js';
 import { tokenManager } from '../lib/tokenManager.js';
+import { ENV } from '../config/env.js';
 
 /**
  * Enhanced session creation middleware with usage validation
@@ -36,6 +37,38 @@ export async function validateSessionCreation(req: Request, res: Response, next:
     console.error('Session validation error:', error);
     res.status(500).json({
       error: 'Internal server error during session validation',
+    });
+  }
+}
+
+/**
+ * Middleware to validate API key from request headers
+ */
+export function validateApiKey(req: Request, res: Response, next: NextFunction): void {
+  try {
+    const apiKey = req.headers['x-api-key'] as string;
+    
+    if (!apiKey) {
+      res.status(401).json({
+        error: 'Missing API key',
+        message: 'X-API-Key header is required',
+      });
+      return;
+    }
+
+    if (apiKey !== ENV.API_KEY) {
+      res.status(401).json({
+        error: 'Invalid API key',
+        message: 'Unauthorized access',
+      });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    console.error('API key validation error:', error);
+    res.status(500).json({
+      error: 'Internal server error during API key validation',
     });
   }
 }

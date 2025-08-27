@@ -7,7 +7,7 @@ import {
 } from "../lib/moodSystem";
 import { UserMood } from "../types/mood";
 
-import { validateSessionToken, trackToolUsage, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
+import { validateApiKey, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
 
 const router = Router();
 
@@ -18,7 +18,7 @@ router.use(addSessionHeaders);
 
 
 /** Get available users */
-router.get("/users", (_req, res) => {
+router.get("/users", validateApiKey, (_req, res) => {
   try {
     const users = getUsers();
     res.json(users);
@@ -31,7 +31,7 @@ router.get("/users", (_req, res) => {
 });
 
 /** Tool endpoint invoked by the browser when model requests get_driving_data */
-router.post("/tools/get_driving_data", validateSessionToken, trackToolUsage, (req, res) => {
+router.post("/tools/get_driving_data", validateApiKey, (req, res) => {
   console.log("🔧 Tool called:", req.body);
 
   const { userId, category, query } = req.body || {};
@@ -67,7 +67,7 @@ router.post("/tools/get_driving_data", validateSessionToken, trackToolUsage, (re
 });
 
 /** Mood assessment tool endpoint - called by AI agent */
-router.post("/tools/assess_user_mood", validateSessionToken, trackToolUsage, async (req, res) => {
+router.post("/tools/assess_user_mood", validateApiKey, async (req, res) => {
   console.log("🧠 Mood assessment tool called:", req.body);
 
   const { userId, userResponse, sessionId } = req.body || {};
@@ -118,7 +118,7 @@ router.post("/tools/assess_user_mood", validateSessionToken, trackToolUsage, asy
 });
 
 /** Get current session mood data */
-router.get("/session/:userId/:sessionId/mood", (req, res) => {
+router.get("/session/:userId/:sessionId/mood", validateApiKey, (req, res) => {
   const { userId, sessionId } = req.params;
 
   try {
@@ -143,7 +143,7 @@ router.get("/session/:userId/:sessionId/mood", (req, res) => {
 });
 
 /** Enhanced mood system test with full spectrum */
-router.get("/tools/test", async (_req, res) => {
+router.get("/tools/test", validateApiKey, async (_req, res) => {
   try {
     const test = findRelevantTripData("user1", "work_commute", "office");
 

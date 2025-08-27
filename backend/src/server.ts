@@ -10,6 +10,7 @@ import toolsRouter from "./routes/tools";
 import heartbeatRouter from "./routes/heartbeat.js";
 import { usageService } from "./lib/usageService.js";
 import { websocketMonitor } from "./lib/websocketMonitor.js";
+import { validateApiKey } from "./middleware/sessionMiddleware.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -53,7 +54,7 @@ app.use("/api", toolsRouter);
 app.use("/api", heartbeatRouter);
 
 // Agent status
-app.get("/api/agent", (_req, res) => {
+app.get("/api/agent", validateApiKey, (_req, res) => {
   res.json({
     name: "Drival",
     status: "active",
