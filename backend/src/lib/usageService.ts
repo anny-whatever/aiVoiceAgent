@@ -22,7 +22,7 @@ class UsageService {
     // Start cleanup interval for expired sessions
     this.cleanupInterval = setInterval(() => {
       this.cleanupExpiredSessions().catch(console.error);
-    }, 5 * 60 * 1000); // Every 5 minutes
+    }, 2 * 60 * 1000); // Every 2 minutes
     
     console.log('✅ Usage service initialized');
   }
@@ -51,18 +51,26 @@ class UsageService {
 
     // Check concurrent sessions and clean up stale ones
     const activeSessions = await usageDB.getUserActiveSessions(userId);
+    console.log(`📊 Found ${activeSessions.length} active sessions for user ${userId}`);
     
-    // Clean up sessions that haven't sent heartbeats for more than 10 minutes
-    const staleThreshold = Date.now() - (10 * 60 * 1000); // 10 minutes ago
+    // Clean up sessions that haven't sent heartbeats for more than 5 minutes (more aggressive)
+    const staleThreshold = Date.now() - (5 * 60 * 1000); // 5 minutes ago
     const staleSessions = activeSessions.filter(session => {
       const lastHeartbeat = new Date(session.lastHeartbeat).getTime();
-      return lastHeartbeat < staleThreshold;
+      const isStale = lastHeartbeat < staleThreshold;
+      if (isStale) {
+        const minutesStale = Math.floor((Date.now() - lastHeartbeat) / (60 * 1000));
+        console.log(`🕐 Session ${session.sessionId} is stale (${minutesStale} minutes old)`);
+      }
+      return isStale;
     });
+    
+    console.log(`🧹 Found ${staleSessions.length} stale sessions to clean up`);
     
     // Remove stale sessions
     for (const staleSession of staleSessions) {
       await usageDB.deleteActiveSession(staleSession.sessionId);
-      console.log(`🧹 Cleaned up stale session: ${staleSession.sessionId}`);
+      console.log(`✅ Cleaned up stale session: ${staleSession.sessionId}`);
     }
     
     // Get updated active sessions count after cleanup
@@ -70,6 +78,8 @@ class UsageService {
       const lastHeartbeat = new Date(session.lastHeartbeat).getTime();
       return lastHeartbeat >= staleThreshold;
     });
+    
+    console.log(`📈 Active sessions after cleanup: ${currentActiveSessions.length}/${limits.maxConcurrentSessions}`);
     
     if (currentActiveSessions.length >= limits.maxConcurrentSessions) {
       return {
@@ -356,12 +366,13 @@ class UsageService {
           }
         }
         
-        // Also cleanup stale sessions (no heartbeat for 10+ minutes)
+        // Also cleanup stale sessions (no heartbeat for 5+ minutes)
         const lastHeartbeat = new Date(session.lastHeartbeat).getTime();
-        const staleThreshold = currentTime - (10 * 60 * 1000); // 10 minutes
+        const staleThreshold = currentTime - (5 * 60 * 1000); // 5 minutes
         
         if (lastHeartbeat < staleThreshold) {
-          console.log(`🧹 Cleaning up stale session ${session.sessionId} - no heartbeat for 10+ minutes`);
+          const minutesStale = Math.floor((currentTime - lastHeartbeat) / (60 * 1000));
+          console.log(`🧹 Cleaning up stale session ${session.sessionId} - no heartbeat for ${minutesStale} minutes`);
           await usageDB.deleteActiveSession(session.sessionId);
         }
       }
