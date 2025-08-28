@@ -74,7 +74,7 @@ export const useWebRTC = () => {
 
         const { pc, dc, mic } = await connectRealtime({
           apiKey,
-          backendUrl: process.env.REACT_APP_BACKEND || '',
+          backendUrl: import.meta.env.VITE_BACKEND || '',
           onEvent,
           onRemoteTrack,
         });
