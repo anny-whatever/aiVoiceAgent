@@ -96,16 +96,66 @@ router.post("/tools/get_driving_data",
         });
       }
 
-      // For now, return a simple response since the full implementation was removed
+      // Ensure MongoDB connection
+      await mongoConnection.ensureConnection();
+      
+      let trips: any[] = [];
+      let content = "";
+      
+      // Parse query to determine what trips to fetch
+      const queryLower = query.toLowerCase();
+      
+      if (queryLower.includes('last') || queryLower.includes('recent')) {
+        // Extract number from query (e.g., "last 3 trips", "recent 5 trips")
+        const numberMatch = queryLower.match(/\b(\d+)\b/);
+        const limit = numberMatch ? parseInt(numberMatch[1]) : 5;
+        
+        trips = await TripService.getRecentTrips(userId, Math.min(limit, 10)); // Cap at 10 for performance
+        content = `Found ${trips.length} recent trip${trips.length !== 1 ? 's' : ''} for the user.`;
+      } else if (queryLower.includes('today')) {
+        trips = await TripService.getTripsToday(userId);
+        content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} for today.`;
+      } else if (queryLower.includes('yesterday')) {
+        trips = await TripService.getTripsYesterday(userId);
+        content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} for yesterday.`;
+      } else if (queryLower.includes('week')) {
+        trips = await TripService.getTripsLastWeek(userId);
+        content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} from the last week.`;
+      } else if (queryLower.includes('month')) {
+        trips = await TripService.getTripsThisMonth(userId);
+        content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} from this month.`;
+      } else {
+        // Default to recent trips
+        trips = await TripService.getRecentTrips(userId, 5);
+        content = `Found ${trips.length} recent trip${trips.length !== 1 ? 's' : ''} for the user.`;
+      }
+      
+      // Format trip data for response
+      const formattedTrips = trips.map(trip => ({
+        id: trip._id,
+        startAddress: trip.startAddress,
+        endAddress: trip.endAddress,
+        distance: trip.distance,
+        duration_seconds: trip.duration_seconds,
+        start_time: trip.start_time,
+        end_time: trip.end_time,
+        eco_score: trip.eco_score,
+        safety_violations: trip.safety_violations,
+        coins: trip.coins,
+        rewardPoints: trip.rewardPoints,
+        status: trip.status
+      }));
+      
       return res.json({
         success: true,
-        content: "Driving data functionality is being updated. Please try again later.",
-        data: [],
+        content,
+        data: formattedTrips,
         metadata: {
           userId,
           category,
           query,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          totalTrips: trips.length
         }
       });
     } catch (e: any) {

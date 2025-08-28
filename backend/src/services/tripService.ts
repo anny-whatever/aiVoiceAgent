@@ -128,6 +128,18 @@ export class TripService {
   }
 
   /**
+   * Get recent trips (last N trips)
+   */
+  static async getRecentTrips(firebase_uid: string, limit: number = 10): Promise<ITrip[]> {
+    await this.ensureConnection();
+    
+    return await Trip.find({ firebase_uid })
+      .sort({ start_time: -1, createdAt: -1 })
+      .limit(limit)
+      .exec();
+  }
+
+  /**
    * Get trips by category
    */
   static async getTripsByStatus(firebase_uid: string, status: string, options: TripQueryOptions = {}): Promise<ITrip[]> {
