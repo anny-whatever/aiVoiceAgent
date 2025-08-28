@@ -163,7 +163,7 @@ export const useWebRTC = () => {
           },
           modalities: ["text", "audio"],
           voice: "coral",
-          max_response_output_tokens: 1000,
+          max_response_output_tokens: 3000,
           tool_choice: "auto",
           instructions: `You are Drival, a personal driving assistant for ${userName}. Be brief and conversational.
 

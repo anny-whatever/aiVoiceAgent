@@ -101,6 +101,8 @@ export class RealtimeEventHandler {
       await this.handleMoodAssessmentCall(event);
     } else if (event.name === "get_vehicle_info") {
       await this.handleVehicleInfoCall(event);
+    } else if (event.name === "get_user_info") {
+      await this.handleUserInfoCall(event);
     } else {
       console.warn("⚠️ Unknown function call:", event.name);
     }
@@ -117,10 +119,15 @@ export class RealtimeEventHandler {
 
       if (this.args.dcRef.current) {
         console.log("📤 Sending function result back to model");
+        // Send both content and trip data to AI for proper description
+        const functionOutput = {
+          message: result.content || "No data found",
+          trips: result.data || []
+        };
         this.args.sendFunctionResult(
           this.args.dcRef.current,
           event.call_id,
-          result.content || "No data found"
+          JSON.stringify(functionOutput)
         );
 
         setTimeout(() => {
@@ -225,10 +232,15 @@ export class RealtimeEventHandler {
 
       if (this.args.dcRef.current) {
         console.log("📤 Sending vehicle info result back to model");
+        // Send both content and vehicle data to AI for proper description
+        const functionOutput = {
+          message: result.content || "No vehicle information found",
+          vehicles: result.data || []
+        };
         this.args.sendFunctionResult(
           this.args.dcRef.current,
           event.call_id,
-          result.content || "No vehicle information found"
+          JSON.stringify(functionOutput)
         );
 
         setTimeout(() => {
@@ -253,6 +265,58 @@ export class RealtimeEventHandler {
           if (this.args.dcRef.current) {
             console.log(
               "📤 Triggering model response after vehicle info error"
+            );
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    }
+  }
+
+  private async handleUserInfoCall(event: any) {
+    try {
+      const args = JSON.parse(event.arguments || "{}");
+      args.userId = this.args.selectedUser;
+      console.log("👤 Calling backend for user info with args:", args);
+
+      const result = await ApiService.getUserInfo(args);
+      console.log("✅ User info response:", result);
+
+      if (this.args.dcRef.current) {
+        console.log("📤 Sending user info result back to model");
+        // Send both content and user data to AI for proper description
+        const functionOutput = {
+          message: result.content || "No user information found",
+          userInfo: result.data || {}
+        };
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          JSON.stringify(functionOutput)
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log("📤 Triggering model response after user info result");
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error("❌ User info error:", error);
+      if (this.args.dcRef.current) {
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          `Sorry, I couldn't retrieve your user information. Error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log(
+              "📤 Triggering model response after user info error"
             );
             this.args.sendResponseCreate(this.args.dcRef.current);
           }
@@ -291,7 +355,7 @@ export class RealtimeEventHandler {
           if (this.args.dcRef.current) {
             this.args.sendResponseCreate(this.args.dcRef.current, {
               modalities: ["audio", "text"],
-              max_output_tokens: 300,
+              max_output_tokens: 900,
             });
           }
         }, 300);
