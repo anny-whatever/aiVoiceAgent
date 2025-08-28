@@ -1,7 +1,7 @@
 import { ApiResponse, User, SessionInfo } from "../types";
 import { getRequiredURLParams } from "../utils/urlParams";
 
-const BACKEND_URL = import.meta.env.REACT_APP_BACKEND || "http://localhost:3001";
+const BACKEND_URL = import.meta.env.VITE_BACKEND || "http://localhost:3001";
 
 class SessionManager {
   private sessionToken: string | null = null;
