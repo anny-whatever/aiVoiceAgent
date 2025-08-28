@@ -9,14 +9,25 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bitcode": false
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -25,6 +36,18 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "microphonePermission": "Allow Drival to access your microphone for voice conversations"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow Drival to access your microphone for voice conversations"
+        }
+      ],
       [
         "expo-splash-screen",
         {
