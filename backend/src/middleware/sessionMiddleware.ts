@@ -43,6 +43,7 @@ export async function validateSessionCreation(req: Request, res: Response, next:
 
 /**
  * Middleware to validate API key from request headers
+ * Validates against the backend's API key for proper authentication
  */
 export function validateApiKey(req: Request, res: Response, next: NextFunction): void {
   try {
@@ -56,14 +57,18 @@ export function validateApiKey(req: Request, res: Response, next: NextFunction):
       return;
     }
 
+    // Validate against the backend's API key
     if (apiKey !== ENV.API_KEY) {
       res.status(401).json({
         error: 'Invalid API key',
-        message: 'Unauthorized access',
+        message: 'API key does not match',
       });
       return;
     }
 
+    // Store the API key in request for potential future use
+    req.apiKey = apiKey;
+    
     next();
   } catch (error) {
     console.error('API key validation error:', error);
@@ -232,6 +237,7 @@ declare global {
         remaining: number;
         token: string;
       };
+      apiKey?: string;
     }
   }
 }

@@ -67,7 +67,7 @@ export const useWebRTC = () => {
       try {
         setStatus("Connecting...");
 
-        const { apiKey, sessionInfo } = await ApiService.createSession(selectedUser);
+        const { apiKey, sessionInfo } = await ApiService.createSession();
         
         // Notify about session creation
         onSessionCreated?.(sessionInfo);

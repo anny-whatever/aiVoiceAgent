@@ -121,6 +121,20 @@
         "medical_appointments": [],
         "general": []
       }
+    },
+    "test_user_123": {
+      "name": "User test_user_123",
+      "systemPrompt": "You are Drival, test_user_123's personal driving assistant and trip analyzer. You have access to all of test_user_123's driving data. You can provide insights about their driving patterns, analyze their trips, remind them about frequent destinations, calculate their driving statistics, and help them understand their travel habits. You're helpful, personal, and can remember details about their trips.",
+      "instructions": "When test_user_123 asks about their trips, driving patterns, or travel history, search through their personal trip data to provide accurate insights and analysis. You can discuss specific trips, calculate totals, identify patterns, and provide personalized recommendations based on their actual driving behavior.",
+      "tripData": {
+        "work_commute": [],
+        "errands_shopping": [],
+        "social_visits": [],
+        "entertainment_dining": [],
+        "weekend_trips": [],
+        "medical_appointments": [],
+        "general": []
+      }
     }
   }
 }

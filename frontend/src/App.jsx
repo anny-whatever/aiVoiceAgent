@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./index.css";
 import {
   sendFunctionResult,
@@ -8,15 +8,13 @@ import {
 import { useWebRTC } from "./hooks/useWebRTC";
 import { useAudio } from "./hooks/useAudio";
 import { useMood } from "./hooks/useMood";
-import { useUsers } from "./hooks/useUsers";
 import { useLanguages } from "./hooks/useLanguages";
 import { useQuota } from "./hooks/useQuota";
 import { RealtimeEventHandler } from "./services/realtimeService";
-import { fakeAuth } from "./services/fakeAuth";
+import { getRequiredURLParams } from "./utils/urlParams";
 import {
   StatusIndicator,
   MoodDisplay,
-  UserSelector,
   LanguageSelector,
   VoiceControls,
   InfoPanel,
@@ -28,21 +26,30 @@ export default function App() {
   const webRTC = useWebRTC();
   const { userDing, aiDing, controlMicrophone } = useAudio();
   const mood = useMood();
-  const users = useUsers();
   const languages = useLanguages();
   const quota = useQuota();
+  
+  // URL params state
+  const [urlParams, setUrlParams] = useState(null);
+  const [paramError, setParamError] = useState(null);
 
   const audioRef = useRef(null);
 
-  // Initialize fake authentication on app start
+  // Initialize URL parameters on app start
   useEffect(() => {
-    // Auto-sign in the first user for demo purposes
-    fakeAuth.switchUser(0).catch(console.error);
+    try {
+      const params = getRequiredURLParams();
+      setUrlParams(params);
+      console.log('Initialized with URL params:', { uid: params.uid, apiKey: params.apiKey ? '[REDACTED]' : null });
+    } catch (error) {
+      setParamError(error.message);
+      console.error('URL parameter error:', error.message);
+    }
   }, []);
 
   // Create event handler with dependencies
   const eventHandler = new RealtimeEventHandler({
-    selectedUser: users.selectedUser,
+    selectedUser: urlParams?.uid || 'unknown',
     dcRef: webRTC.refs.dc,
     backendUrl: "http://localhost:3001",
     setCurrentMood: mood.setCurrentMood,
@@ -59,9 +66,14 @@ export default function App() {
   });
 
   const handleStart = async () => {
+    if (!urlParams) {
+      console.error('Cannot start: URL parameters not loaded');
+      return;
+    }
+    
     try {
       const { dc } = await webRTC.connect(
-        users.selectedUser,
+        urlParams.uid,
         eventHandler.handleEvent.bind(eventHandler),
         (stream) => {
           if (audioRef.current) {
@@ -78,9 +90,12 @@ export default function App() {
         }
       );
 
+      // Create a mock users array for the single user
+      const mockUsers = [{ id: urlParams.uid, name: `User ${urlParams.uid}` }];
+      
       webRTC.setupSession(
-        users.selectedUser,
-        users.users,
+        urlParams.uid,
+        mockUsers,
         languages.selectedLanguage,
         languages.getLanguageNativeName(languages.selectedLanguage)
       );
@@ -132,28 +147,28 @@ export default function App() {
           getMoodColor={mood.getMoodColor}
         />
 
-        {!webRTC.connectionStatus.isConnected && (
-          <>
-            <UserSelector
-              users={users.users}
-              selectedUser={users.selectedUser}
-              onUserChange={users.setSelectedUser}
-              loading={users.loading}
-              error={users.error}
-            />
+        {/* URL Parameter Error */}
+        {paramError && (
+          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <div className="text-red-300 text-sm text-center">
+              ❌ {paramError}
+            </div>
+          </div>
+        )}
 
-            <LanguageSelector
-              languages={languages.languages}
-              selectedLanguage={languages.selectedLanguage}
-              onLanguageChange={languages.setSelectedLanguage}
-            />
-          </>
+        {!webRTC.connectionStatus.isConnected && !paramError && (
+          <LanguageSelector
+            languages={languages.languages}
+            selectedLanguage={languages.selectedLanguage}
+            onLanguageChange={languages.setSelectedLanguage}
+          />
         )}
 
         <VoiceControls
           connectionStatus={webRTC.connectionStatus}
           onStart={handleStart}
           onStop={handleStop}
+          disabled={!!paramError || !urlParams}
         />
 
         {/* Quota Warning */}

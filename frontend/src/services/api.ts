@@ -1,7 +1,7 @@
 import { ApiResponse, User, SessionInfo } from "../types";
+import { getRequiredURLParams } from "../utils/urlParams";
 
 const BACKEND_URL = "http://localhost:3001";
-const API_KEY = "5a0fe6a5eb768c1bb43999b8aa56a7cf";
 
 class SessionManager {
   private sessionToken: string | null = null;
@@ -46,14 +46,16 @@ class SessionManager {
 const sessionManager = new SessionManager();
 
 export class ApiService {
-  static async createSession(userId: string): Promise<{ apiKey: string; sessionInfo: SessionInfo }> {
+  static async createSession(): Promise<{ apiKey: string; sessionInfo: SessionInfo }> {
+    const { apiKey, uid } = getRequiredURLParams();
+    
     const response = await fetch(`${BACKEND_URL}/api/session`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        "X-API-Key": API_KEY
+        "X-API-Key": apiKey!
       },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ userId: uid }),
     });
 
     if (!response.ok) {
@@ -80,10 +82,11 @@ export class ApiService {
   }
 
   private static getAuthHeaders() {
+    const { apiKey } = getRequiredURLParams();
     const token = sessionManager.getSessionToken();
     return {
       "Content-Type": "application/json",
-      "X-API-Key": API_KEY,
+      "X-API-Key": apiKey!,
       ...(token && { "Authorization": `Bearer ${token}` }),
     };
   }
