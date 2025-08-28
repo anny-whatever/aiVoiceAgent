@@ -1,5 +1,5 @@
 # Multi-stage build for React app
-FROM node:18-alpine as build
+FROM node:18-alpine AS build
 
 # Set working directory
 WORKDIR /app
@@ -26,15 +26,14 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nginx
-RUN adduser -S frontend -u 1001 -G nginx
+RUN adduser -S frontend -u 1001
 
 # Change ownership of nginx directories
-RUN chown -R frontend:nginx /var/cache/nginx && \
-    chown -R frontend:nginx /var/log/nginx && \
-    chown -R frontend:nginx /etc/nginx/conf.d && \
+RUN chown -R frontend:frontend /var/cache/nginx && \
+    chown -R frontend:frontend /var/log/nginx && \
+    chown -R frontend:frontend /etc/nginx/conf.d && \
     touch /var/run/nginx.pid && \
-    chown -R frontend:nginx /var/run/nginx.pid
+    chown -R frontend:frontend /var/run/nginx.pid
 
 # Switch to non-root user
 USER frontend
