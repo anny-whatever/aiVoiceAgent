@@ -18,6 +18,8 @@ interface SessionTermination {
 
 type WebSocketMessage = QuotaUpdate | QuotaWarning | SessionTermination;
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND || "http://localhost:3001";
+
 class WebSocketService {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
@@ -49,8 +51,8 @@ class WebSocketService {
     }
 
     try {
-      this.ws = new WebSocket(`ws://localhost:3001/ws/monitor?token=${encodeURIComponent(sessionToken)}`);
-      
+      this.ws = new WebSocket(`ws://${BACKEND_URL}/ws/monitor?token=${encodeURIComponent(sessionToken)}`);
+
       this.ws.onopen = () => {
         console.log('WebSocket connected');
         this.reconnectAttempts = 0;
