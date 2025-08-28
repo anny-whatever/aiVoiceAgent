@@ -54,8 +54,7 @@ const UserSchema: Schema = new Schema({
   firebase_uid: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   email: {
     type: String,
@@ -202,7 +201,6 @@ const UserSchema: Schema = new Schema({
 });
 
 // Indexes for performance
-UserSchema.index({ firebase_uid: 1 });
 UserSchema.index({ createdAt: -1 });
 
 export const User = mongoose.model<IUser>('User', UserSchema);

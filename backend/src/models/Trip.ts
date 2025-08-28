@@ -45,13 +45,11 @@ export interface ITrip extends Document {
 const TripSchema: Schema = new Schema({
   sid: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   firebase_uid: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   startLat: {
     type: Number,

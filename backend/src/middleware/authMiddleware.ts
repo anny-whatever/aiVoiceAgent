@@ -7,26 +7,37 @@ export interface AuthenticatedRequest extends Request {
 }
 
 /**
- * Middleware to extract and validate Firebase UID from request
- * This should be used with Firebase Admin SDK in production
+ * Middleware to validate API key and extract Firebase UID from query parameters
+ * API key is used for authentication, UID is used for user-specific database queries
  */
 export const extractFirebaseUid = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    // For now, we'll extract firebase_uid from request body or headers
-    // In production, this should validate Firebase ID tokens
-    const firebase_uid = req.body.firebase_uid || 
-                        req.headers['x-firebase-uid'] || 
-                        req.query.firebase_uid;
+    // Extract API key and UID from query parameters
+    const apiKey = req.query.api as string;
+    const firebase_uid = req.query.uid as string;
 
-    if (!firebase_uid) {
+    // Validate API key is present
+    if (!apiKey) {
       return res.status(401).json({
-        error: 'Firebase UID is required',
-        message: 'Please provide firebase_uid in request body, headers (x-firebase-uid), or query parameters'
+        error: 'API key is required',
+        message: 'Please provide api key in query parameters: ?api=your_api_key'
       });
     }
 
+    // Validate Firebase UID is present
+    if (!firebase_uid) {
+      return res.status(401).json({
+        error: 'Firebase UID is required',
+        message: 'Please provide firebase UID in query parameters: ?uid=your_firebase_uid'
+      });
+    }
+
+    // TODO: Add proper API key validation here
+    // For now, we just check if it exists
+    // In production, validate against your API key store/database
+    
     // Validate that the user exists in our database
-    const userExists = await UserService.userExists(firebase_uid as string);
+    const userExists = await UserService.userExists(firebase_uid);
     if (!userExists) {
       return res.status(404).json({
         error: 'User not found',
@@ -34,7 +45,7 @@ export const extractFirebaseUid = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    req.firebase_uid = firebase_uid as string;
+    req.firebase_uid = firebase_uid;
     next();
   } catch (error) {
     console.error('Error in extractFirebaseUid middleware:', error);

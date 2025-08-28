@@ -5,7 +5,6 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
 import { validateApiKey } from "./middleware/sessionMiddleware.js";
-import apiRoutes from "./routes/api.js";
 import toolsRoutes from "./routes/tools.js";
 
 dotenv.config();
@@ -27,7 +26,6 @@ app.use(
 app.use(express.json());
 
 // API Routes
-app.use('/api', apiRoutes);
 app.use('/api/tools', toolsRoutes);
 
 // Health check

@@ -3,7 +3,7 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import { loadDrivingData } from "./lib/drivingData";
+
 import { ENV } from "./config/env";
 import sessionRouter from "./routes/session";
 import toolsRouter from "./routes/tools";
@@ -30,9 +30,6 @@ app.use(express.json());
 // Load data and initialize services on boot
 async function initializeServer() {
   try {
-    loadDrivingData(__dirname);
-    console.log("✅ Driving data loaded");
-    
     // Initialize usage tracking service
     await usageService.initialize();
     console.log("✅ Usage service initialized");

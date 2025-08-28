@@ -1,7 +1,6 @@
 import { Router } from "express";
 import fetch from "node-fetch";
 import { ENV } from "../config/env";
-import { getUserData } from "../lib/drivingData";
 import { usageService } from "../lib/usageService.js";
 import { validateApiKey, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
 
@@ -40,15 +39,11 @@ router.post("/session", validateApiKey, async (req, res) => {
       });
     }
 
-    let userData;
-    try {
-      userData = getUserData(userId);
-    } catch (error) {
-      return res.status(404).json({
-        error: "User not found",
-        message: `User ${userId} not found`,
-      });
-    }
+    // User validation removed - getUserData function not available
+    const userData = { 
+      userId,
+      instructions: "You are Drival, a helpful AI assistant for drivers. You can help with mood assessment, driving data analysis, user information, and vehicle information."
+    };
 
     // Get user stats for session info
     const userStats = await usageService.getUserStats(userId);

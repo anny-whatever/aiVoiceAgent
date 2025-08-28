@@ -274,9 +274,49 @@ You MUST use the available functions when appropriate. Mood can change during co
             },
             {
               type: "function",
+              name: "get_user_info",
+              description:
+                "Get user information including streak data, driving statistics, profile completion, and achievements when user asks about their personal stats or progress.",
+              parameters: {
+                type: "object",
+                properties: {
+                  userId: {
+                    type: "string",
+                    description: "The firebase_uid of the user whose data to retrieve",
+                  },
+                  query: {
+                    type: "string",
+                    description: "Description of what user information is being requested (e.g., 'streak', 'driving stats', 'profile', 'achievements')",
+                  },
+                },
+                required: ["userId", "query"],
+              },
+            },
+            {
+              type: "function",
+              name: "get_vehicle_info",
+              description:
+                "Get complete vehicle information when user asks about their cars, vehicle details, insurance, or vehicle condition.",
+              parameters: {
+                type: "object",
+                properties: {
+                  userId: {
+                    type: "string",
+                    description: "The firebase_uid of the user whose vehicle data to retrieve",
+                  },
+                  query: {
+                    type: "string",
+                    description: "Description of what vehicle information is being requested (e.g., 'primary vehicle', 'insurance', 'condition', 'all vehicles')",
+                  },
+                },
+                required: ["userId", "query"],
+              },
+            },
+            {
+              type: "function",
               name: "get_driving_data",
               description:
-                "Get complete trip data for a category when user asks about their trips, routes, or driving history.",
+                "Get complete trip data when user asks about their trips, routes, driving history, last trip, recent trips, or trips on specific dates.",
               parameters: {
                 type: "object",
                 properties: {
@@ -299,7 +339,7 @@ You MUST use the available functions when appropriate. Mood can change during co
                   },
                   query: {
                     type: "string",
-                    description: "Description of what the user is asking about",
+                    description: "Description of what the user is asking about (supports: 'last trip', 'last N trips', 'last week trips', specific dates)",
                   },
                   timeRange: {
                     type: "string",

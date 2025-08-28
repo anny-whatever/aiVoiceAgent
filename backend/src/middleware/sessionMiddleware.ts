@@ -42,17 +42,23 @@ export async function validateSessionCreation(req: Request, res: Response, next:
 }
 
 /**
- * Middleware to validate API key from request headers
+ * Middleware to validate API key from query parameters
  * Validates against the backend's API key for proper authentication
  */
 export function validateApiKey(req: Request, res: Response, next: NextFunction): void {
   try {
-    const apiKey = req.headers['x-api-key'] as string;
+    const apiKey = req.query.api as string;
+    
+    console.log('🔑 API Key validation:', {
+      received: apiKey,
+      expected: ENV.API_KEY,
+      match: apiKey === ENV.API_KEY
+    });
     
     if (!apiKey) {
       res.status(401).json({
         error: 'Missing API key',
-        message: 'X-API-Key header is required',
+        message: 'API key is required in query parameters: ?api=your_api_key',
       });
       return;
     }

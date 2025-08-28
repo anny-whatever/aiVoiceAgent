@@ -51,13 +51,11 @@ export interface IVehicle extends Document {
 const VehicleSchema: Schema = new Schema({
   user_id: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
-  firebase_id: {
+    firebase_id: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   vehicle_name: {
     type: String,

@@ -49,11 +49,10 @@ export class ApiService {
   static async createSession(): Promise<{ apiKey: string; sessionInfo: SessionInfo }> {
     const { apiKey, uid } = getRequiredURLParams();
     
-    const response = await fetch(`${BACKEND_URL}/api/session`, {
+    const response = await fetch(`${BACKEND_URL}/api/session?api=${apiKey}&uid=${uid}`, {
       method: "POST",
       headers: { 
-        "Content-Type": "application/json",
-        "X-API-Key": apiKey!
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ userId: uid }),
     });
@@ -82,17 +81,20 @@ export class ApiService {
   }
 
   private static getAuthHeaders() {
-    const { apiKey } = getRequiredURLParams();
     const token = sessionManager.getSessionToken();
     return {
       "Content-Type": "application/json",
-      "X-API-Key": apiKey!,
       ...(token && { "Authorization": `Bearer ${token}` }),
     };
   }
 
+  private static getApiQueryParams() {
+    const { apiKey, uid } = getRequiredURLParams();
+    return `api=${apiKey}&uid=${uid}`;
+  }
+
   static async getDrivingData(args: any): Promise<ApiResponse> {
-    const response = await fetch(`${BACKEND_URL}/api/tools/get_driving_data`, {
+    const response = await fetch(`${BACKEND_URL}/api/tools/get_driving_data?${this.getApiQueryParams()}`, {
       method: "POST",
       headers: this.getAuthHeaders(),
       body: JSON.stringify(args),
@@ -107,7 +109,7 @@ export class ApiService {
   }
 
   static async assessUserMood(args: any): Promise<ApiResponse> {
-    const response = await fetch(`${BACKEND_URL}/api/tools/assess_user_mood`, {
+    const response = await fetch(`${BACKEND_URL}/api/tools/assess_user_mood?${this.getApiQueryParams()}`, {
       method: "POST",
       headers: this.getAuthHeaders(),
       body: JSON.stringify(args),
