@@ -381,7 +381,7 @@ You MUST use the available functions when appropriate. Mood can change during co
               type: "function",
               name: "search_web",
               description:
-                "Search the web for up-to-date information on any topic using Google AI Overview. Use this tool when the user asks for current information, facts, news, or any data that requires web search. This tool provides a summary first and can provide more details if requested.",
+                "Search the web for up-to-date information on any topic using Google Search Answer Box API. Use this tool when the user asks for current information, facts, news, or any data that requires web search. This tool provides direct answers, summaries, and can provide more details if requested.",
               parameters: {
                 type: "object",
                 properties: {

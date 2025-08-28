@@ -8,25 +8,52 @@ interface SerpApiResponse {
     processed_at: string;
     total_time_taken: number;
   };
-  ai_overview?: {
-    text_blocks: Array<{
-      type: 'heading' | 'paragraph' | 'list' | 'expandable' | 'comparison';
-      snippet: string;
-      reference_indexes?: number[];
-      list?: Array<{
-        snippet: string;
-        title?: string;
-        reference_indexes?: number[];
-      }>;
-    }>;
-    references?: Array<{
-      title: string;
+  answer_box?: {
+    type: string;
+    result?: string;
+    snippet?: string;
+    snippet_highlighted_words?: string[];
+    title?: string;
+    link?: string;
+    displayed_link?: string;
+    thumbnail?: string;
+    // Weather specific fields
+    temperature?: string;
+    unit?: string;
+    precipitation?: string;
+    humidity?: string;
+    wind?: string;
+    location?: string;
+    date?: string;
+    weather?: string;
+    // Calculator specific fields
+    expression?: string;
+    // Knowledge graph fields
+    description?: string;
+    source?: {
+      name: string;
       link: string;
-      snippet: string;
-      source: string;
-      index: number;
-    }>;
+    };
   };
+  knowledge_graph?: {
+    title?: string;
+    type?: string;
+    description?: string;
+    source?: {
+      name: string;
+      link: string;
+    };
+    thumbnail?: string;
+  };
+  organic_results?: Array<{
+    position: number;
+    title: string;
+    link: string;
+    displayed_link: string;
+    snippet: string;
+    snippet_highlighted_words?: string[];
+    source?: string;
+  }>;
   error?: string;
 }
 
@@ -47,7 +74,7 @@ export class SearchService {
   private static readonly SERP_BASE_URL = 'https://serpapi.com/search.json';
 
   /**
-   * Search using Google AI Overview API via SerpAPI
+   * Search using Google Direct Answer Box API via SerpAPI
    */
   static async searchWithAIOverview(query: string): Promise<SearchResult> {
     if (!this.SERP_API_KEY) {
@@ -55,7 +82,7 @@ export class SearchService {
     }
 
     try {
-      console.log('🔍 Searching with AI Overview:', query);
+      console.log('🔍 Searching with Direct Answer Box:', query);
       
       const params = new URLSearchParams({
         engine: 'google',
@@ -81,7 +108,7 @@ export class SearchService {
         throw new Error(`Search failed with status: ${data.search_metadata.status}`);
       }
 
-      return this.processAIOverviewResponse(data, query);
+      return this.processAnswerBoxResponse(data, query);
     } catch (error) {
       console.error('❌ Search error:', error);
       return {
@@ -93,64 +120,115 @@ export class SearchService {
   }
 
   /**
-   * Process AI Overview response and extract key information
+   * Process Direct Answer Box response and extract key information
    */
-  private static processAIOverviewResponse(data: SerpApiResponse, query: string): SearchResult {
-    if (!data.ai_overview || !data.ai_overview.text_blocks) {
+  private static processAnswerBoxResponse(data: SerpApiResponse, query: string): SearchResult {
+    let summary = '';
+    let fullContent = '';
+    const references: Array<{ title: string; link: string; source: string }> = [];
+
+    // Process Answer Box (primary direct answer)
+    if (data.answer_box) {
+      const answerBox = data.answer_box;
+      
+      switch (answerBox.type) {
+        case 'calculator_result':
+          summary = `The result is: ${answerBox.result}`;
+          fullContent = `Calculation: ${answerBox.expression || query} = ${answerBox.result}`;
+          break;
+          
+        case 'weather_result':
+          summary = `Weather in ${answerBox.location}: ${answerBox.temperature}°${answerBox.unit}, ${answerBox.weather}. Humidity: ${answerBox.humidity}, Wind: ${answerBox.wind}`;
+          fullContent = `Current weather in ${answerBox.location}:\n` +
+            `Temperature: ${answerBox.temperature}°${answerBox.unit}\n` +
+            `Condition: ${answerBox.weather}\n` +
+            `Humidity: ${answerBox.humidity}\n` +
+            `Wind: ${answerBox.wind}\n` +
+            `Precipitation: ${answerBox.precipitation}\n` +
+            `Date: ${answerBox.date}`;
+          break;
+          
+        default:
+          // Generic answer box (definitions, facts, etc.)
+          if (answerBox.result) {
+            summary = answerBox.result;
+            fullContent = answerBox.result;
+          } else if (answerBox.snippet) {
+            summary = answerBox.snippet.length > 200 ? 
+              answerBox.snippet.substring(0, 200) + '...' : 
+              answerBox.snippet;
+            fullContent = answerBox.snippet;
+          }
+          
+          if (answerBox.title && answerBox.link) {
+            references.push({
+              title: answerBox.title,
+              link: answerBox.link,
+              source: answerBox.displayed_link || answerBox.link
+            });
+          }
+          break;
+      }
+    }
+    
+    // Process Knowledge Graph as fallback
+    if (!summary && data.knowledge_graph) {
+      const kg = data.knowledge_graph;
+      summary = kg.description || `Information about ${kg.title || query}`;
+      fullContent = `**${kg.title || 'Knowledge Graph'}**\n${kg.description || 'No description available'}`;
+      
+      if (kg.source) {
+        references.push({
+          title: kg.title || 'Knowledge Graph',
+          link: kg.source.link,
+          source: kg.source.name
+        });
+      }
+    }
+    
+    // Fallback to organic results if no direct answer
+    if (!summary && data.organic_results && data.organic_results.length > 0) {
+      const topResult = data.organic_results[0];
+      summary = topResult.snippet.length > 200 ? 
+        topResult.snippet.substring(0, 200) + '...' : 
+        topResult.snippet;
+      fullContent = `**${topResult.title}**\n${topResult.snippet}`;
+      
+      references.push({
+        title: topResult.title,
+        link: topResult.link,
+        source: topResult.displayed_link
+      });
+      
+      // Add additional organic results as references
+      data.organic_results.slice(1, 4).forEach(result => {
+        references.push({
+          title: result.title,
+          link: result.link,
+          source: result.displayed_link
+        });
+      });
+    }
+    
+    // Final fallback
+    if (!summary) {
       return {
         success: true,
-        summary: `I searched for "${query}" but didn't find a comprehensive AI overview. Would you like me to search for more specific information?`,
-        fullContent: 'No AI overview available for this query.'
+        summary: `I searched for "${query}" but couldn't find a direct answer. Would you like me to search for more specific information?`,
+        fullContent: 'No direct answer available for this query.'
       };
     }
 
-    const { text_blocks, references } = data.ai_overview;
-    
-    // Extract summary (first 2-4 sentences)
-    const summaryParts: string[] = [];
-    const fullContentParts: string[] = [];
-    
-    for (const block of text_blocks) {
-      if (block.type === 'paragraph' && block.snippet) {
-        const sentences = block.snippet.split(/[.!?]+/).filter(s => s.trim().length > 0);
-        summaryParts.push(...sentences.slice(0, 2).map(s => s.trim() + '.'));
-        fullContentParts.push(block.snippet);
-      } else if (block.type === 'heading' && block.snippet) {
-        fullContentParts.push(`\n**${block.snippet}**`);
-      } else if (block.type === 'list' && block.list) {
-        const listItems = block.list.slice(0, 3).map(item => 
-          item.title ? `• ${item.title}: ${item.snippet}` : `• ${item.snippet}`
-        );
-        if (summaryParts.length < 3) {
-          summaryParts.push(...listItems.slice(0, 2));
-        }
-        fullContentParts.push(...listItems);
-      }
-      
-      // Limit summary to 4 key points
-      if (summaryParts.length >= 4) break;
-    }
-
-    const summary = summaryParts.slice(0, 4).join(' ');
-    const fullContent = fullContentParts.join('\n');
-    
-    // Process references
-    const processedReferences = references?.slice(0, 5).map(ref => ({
-      title: ref.title,
-      link: ref.link,
-      source: ref.source
-    }));
-
     return {
       success: true,
-      summary: summary || `I found information about "${query}". Would you like me to provide more details?`,
+      summary,
       fullContent,
-      references: processedReferences
+      references: references.length > 0 ? references : undefined
     };
   }
 
   /**
-   * Search for specific AI Overview using page token (for follow-up searches)
+   * Search for specific information using page token (for follow-up searches)
    */
   static async searchWithPageToken(pageToken: string): Promise<SearchResult> {
     if (!this.SERP_API_KEY) {
@@ -159,7 +237,7 @@ export class SearchService {
 
     try {
       const params = new URLSearchParams({
-        engine: 'google_ai_overview',
+        engine: 'google',
         page_token: pageToken,
         api_key: this.SERP_API_KEY
       });
@@ -176,7 +254,7 @@ export class SearchService {
         throw new Error(`SerpAPI error: ${data.error}`);
       }
 
-      return this.processAIOverviewResponse(data, 'detailed search');
+      return this.processAnswerBoxResponse(data, 'detailed search');
     } catch (error) {
       console.error('❌ Page token search error:', error);
       return {

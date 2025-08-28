@@ -552,7 +552,7 @@ router.get("/session/:userId/:sessionId/mood", validateApiKey, (req, res) => {
   }
 });
 
-/** Search tool endpoint - uses SerpAPI Google AI Overview for web search */
+/** Search tool endpoint - uses SerpAPI Google Search Answer Box for web search */
 router.post("/tools/search_web", 
   validateApiKey,
   extractFirebaseUid,
