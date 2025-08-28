@@ -99,6 +99,8 @@ export class RealtimeEventHandler {
       await this.handleDrivingDataCall(event);
     } else if (event.name === "assess_user_mood") {
       await this.handleMoodAssessmentCall(event);
+    } else if (event.name === "get_vehicle_info") {
+      await this.handleVehicleInfoCall(event);
     } else {
       console.warn("⚠️ Unknown function call:", event.name);
     }
@@ -204,6 +206,53 @@ export class RealtimeEventHandler {
           if (this.args.dcRef.current) {
             console.log(
               "📤 Triggering model response after mood assessment error"
+            );
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    }
+  }
+
+  private async handleVehicleInfoCall(event: any) {
+    try {
+      const args = JSON.parse(event.arguments || "{}");
+      args.userId = this.args.selectedUser;
+      console.log("🚗 Calling backend for vehicle info with args:", args);
+
+      const result = await ApiService.getVehicleInfo(args);
+      console.log("✅ Vehicle info response:", result);
+
+      if (this.args.dcRef.current) {
+        console.log("📤 Sending vehicle info result back to model");
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          result.content || "No vehicle information found"
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log("📤 Triggering model response after vehicle info result");
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error("❌ Vehicle info error:", error);
+      if (this.args.dcRef.current) {
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          `Sorry, I couldn't retrieve your vehicle information. Error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log(
+              "📤 Triggering model response after vehicle info error"
             );
             this.args.sendResponseCreate(this.args.dcRef.current);
           }

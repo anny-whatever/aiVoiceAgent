@@ -47,6 +47,33 @@ router.post("/tools/get_driving_data",
           query,
           body: req.body,
         });
+        return res.status(400).json({
+          error: "Category and query parameters are required",
+          received: req.body,
+        });
+      }
+
+      // For now, return a simple response since the full implementation was removed
+      return res.json({
+        success: true,
+        content: "Driving data functionality is being updated. Please try again later.",
+        data: [],
+        metadata: {
+          userId,
+          category,
+          query,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (e: any) {
+      console.error("❌ Tool execution error:", e);
+      return res.status(500).json({
+        error: "Failed to retrieve driving data",
+        details: e?.message || "Unknown error",
+      });
+    }
+  }
+);
 
 /** User info tool endpoint - called by AI agent to get user streak and driving stats */
 router.post("/tools/get_user_info", 
@@ -297,188 +324,8 @@ router.post("/tools/get_vehicle_info",
     }
   }
 );
-        return res.status(400).json({
-          error: "Category and query parameters are required",
-          received: req.body,
-          validCategories: [
-            'work_commute', 'errands_shopping', 'social_visits', 
-            'leisure_recreation', 'medical_appointments', 'other', 'general'
-          ]
-        });
-      }
 
-      // Ensure MongoDB connection
-       await mongoConnection.ensureConnection();
-       
-       // Enhanced trip data functionality
-       let trips: any[] = [];
-       let content = "";
-       
-       const queryLower = query.toLowerCase();
-       
-       try {
-         if (queryLower.includes('last trip') || queryLower.includes('latest trip') || queryLower.includes('recent trip')) {
-           // Get the most recent trip
-           const latestTrip = await TripService.getLatestTrip(userId);
-           if (latestTrip) {
-             trips = [latestTrip];
-             content = `Your last trip was on ${new Date(latestTrip.start_time).toLocaleDateString()} from ${latestTrip.startAddress} to ${latestTrip.endAddress}. Distance: ${latestTrip.distance}km, Duration: ${Math.round(latestTrip.duration_seconds / 60)} minutes, Eco Score: ${latestTrip.eco_score}.`;
-           } else {
-             content = "No trips found for your account.";
-           }
-         } else if (queryLower.match(/last (\d+) trips?/) || queryLower.match(/(\d+) recent trips?/)) {
-           // Get last N trips (up to 5)
-           const match = queryLower.match(/(?:last |recent )?(\d+)/);
-           const count = match ? Math.min(parseInt(match[1]), 5) : 5;
-           
-           trips = await TripService.getTripsByDateRange(userId, 
-             { startDate: new Date(0), endDate: new Date() }, 
-             { limit: count, sortBy: 'start_time', sortOrder: 'desc' }
-           );
-           
-           if (trips.length > 0) {
-             content = `Your last ${trips.length} trip${trips.length > 1 ? 's' : ''}:\n` + 
-               trips.map((trip, index) => 
-                 `${index + 1}. ${new Date(trip.start_time).toLocaleDateString()}: ${trip.startAddress} → ${trip.endAddress} (${trip.distance}km, ${trip.eco_score} eco score)`
-               ).join('\n');
-           } else {
-             content = "No recent trips found.";
-           }
-         } else if (queryLower.includes('last week') || queryLower.includes('this week') || queryLower.includes('week')) {
-           // Get last week's trips
-           trips = await TripService.getTripsLastWeek(userId);
-           
-           if (trips.length > 0) {
-             const totalDistance = trips.reduce((sum, trip) => sum + trip.distance, 0);
-             const avgEcoScore = trips.reduce((sum, trip) => sum + trip.eco_score, 0) / trips.length;
-             
-             content = `Last week you took ${trips.length} trip${trips.length > 1 ? 's' : ''} covering ${totalDistance.toFixed(1)}km with an average eco score of ${avgEcoScore.toFixed(1)}. ` +
-               trips.slice(0, 3).map(trip => 
-                 `${new Date(trip.start_time).toLocaleDateString()}: ${trip.startAddress} → ${trip.endAddress}`
-               ).join(', ') + (trips.length > 3 ? ` and ${trips.length - 3} more.` : '.');
-           } else {
-             content = "No trips found for last week.";
-           }
-         } else if (queryLower.includes('today') || queryLower.includes('today\'s')) {
-           // Get today's trips
-           trips = await TripService.getTripsToday(userId);
-           
-           if (trips.length > 0) {
-             content = `Today you have taken ${trips.length} trip${trips.length > 1 ? 's' : ''}: ` +
-               trips.map(trip => 
-                 `${trip.startAddress} → ${trip.endAddress} (${trip.distance}km)`
-               ).join(', ') + '.';
-           } else {
-             content = "No trips taken today.";
-           }
-         } else if (startDate || endDate || queryLower.match(/\d{4}-\d{2}-\d{2}/) || queryLower.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
-           // Handle specific date queries
-           let dateToSearch = startDate;
-           
-           if (!dateToSearch) {
-             // Try to extract date from query
-             const dateMatch = queryLower.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})/);
-             if (dateMatch) {
-               dateToSearch = dateMatch[0];
-             }
-           }
-           
-           if (dateToSearch) {
-             trips = await TripService.getTripsByDate(userId, dateToSearch);
-             
-             if (trips.length > 0) {
-               content = `On ${new Date(dateToSearch).toLocaleDateString()}, you took ${trips.length} trip${trips.length > 1 ? 's' : ''}: ` +
-                 trips.map(trip => 
-                   `${trip.startAddress} → ${trip.endAddress} (${trip.distance}km, ${trip.eco_score} eco score)`
-                 ).join(', ') + '.';
-             } else {
-               content = `No trips found for ${new Date(dateToSearch).toLocaleDateString()}.`;
-             }
-           } else {
-             content = "Please specify a valid date for trip search.";
-           }
-         } else {
-           // General trip query - get recent trips based on timeRange
-           const options = { limit: 10, sortBy: 'start_time' as const, sortOrder: 'desc' as const };
-           
-           if (timeRange === 'today') {
-             trips = await TripService.getTripsToday(userId, options);
-           } else if (timeRange === 'yesterday') {
-             trips = await TripService.getTripsYesterday(userId, options);
-           } else if (timeRange === 'last_week') {
-             trips = await TripService.getTripsLastWeek(userId, options);
-           } else if (timeRange === 'last_month') {
-             trips = await TripService.getTripsThisMonth(userId, options);
-           } else {
-             // Default to recent trips
-             trips = await TripService.getTripsByDateRange(userId, 
-               { startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), endDate: new Date() }, 
-               options
-             );
-           }
-           
-           if (trips.length > 0) {
-             content = `Found ${trips.length} trip${trips.length > 1 ? 's' : ''} for ${timeRange || 'recent period'}: ` +
-               trips.slice(0, 5).map(trip => 
-                 `${new Date(trip.start_time).toLocaleDateString()}: ${trip.startAddress} → ${trip.endAddress} (${trip.distance}km)`
-               ).join(', ') + (trips.length > 5 ? ` and ${trips.length - 5} more.` : '.');
-           } else {
-             content = `No trips found for ${timeRange || 'the specified period'}.`;
-           }
-         }
-         
-       } catch (error) {
-         console.error('Error fetching trip data:', error);
-         content = "Sorry, I encountered an error while fetching your trip data. Please try again.";
-       }
-       
-      console.log(
-        "✅ Complete data returned for category:",
-        category,
-        "| First 100 chars:",
-        content.substring(0, 100) + "..."
-      );
-      
-      return res.json({ 
-        success: true,
-        content,
-        data: trips.map(trip => ({
-          id: trip._id,
-          start_time: trip.start_time,
-          end_time: trip.end_time,
-          start_address: trip.startAddress,
-          end_address: trip.endAddress,
-          distance: trip.distance,
-          duration_minutes: Math.round(trip.duration_seconds / 60),
-          eco_score: trip.eco_score,
-          safety_violations: trip.safety_violations,
-          max_speed: trip.max_speed_kmh,
-          average_speed: trip.average_speed_kmh,
-          coins: trip.coins,
-          reward_points: trip.rewardPoints
-        })),
-        metadata: {
-          userId,
-          category,
-          query,
-          timeRange,
-          startDate,
-          endDate,
-          tripCount: trips.length,
-          timestamp: new Date().toISOString()
-        }
-      });
-    } catch (e: any) {
-      console.error("❌ Tool execution error:", e);
-      return res.status(500).json({
-        error: "Failed to retrieve trip data",
-        details: e?.message || "Unknown error",
-      });
-    }
-  }
-);
-
-/** Mood assessment tool endpoint - called by AI agent */
+/** Mood assessment tool endpoint - called by AI agent to assess user mood */
 router.post("/tools/assess_user_mood", 
   validateApiKey,
   extractFirebaseUid,
