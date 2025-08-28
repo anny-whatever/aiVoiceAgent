@@ -29,6 +29,19 @@ class WebSocketService {
   private onQuotaWarning?: (warning: QuotaWarning) => void;
   private onSessionTerminated?: (reason: string) => void;
 
+  private getWebSocketUrl(): string {
+    try {
+      const url = new URL(BACKEND_URL);
+      // Convert HTTP protocol to WebSocket protocol
+      const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${wsProtocol}//${url.host}`;
+    } catch (error) {
+      // Fallback for invalid URLs or relative paths
+      console.warn('Invalid BACKEND_URL, using fallback:', error);
+      return BACKEND_URL.replace(/^https?:\/\//, '').replace(/^/, 'ws://');
+    }
+  }
+
   connect(callbacks: {
     onQuotaUpdate?: (remaining: number) => void;
     onQuotaWarning?: (warning: QuotaWarning) => void;
@@ -51,7 +64,10 @@ class WebSocketService {
     }
 
     try {
-      this.ws = new WebSocket(`ws://${BACKEND_URL}/ws/monitor?token=${encodeURIComponent(sessionToken)}`);
+      const wsBaseUrl = this.getWebSocketUrl();
+      const wsUrl = `${wsBaseUrl}/ws/monitor?token=${encodeURIComponent(sessionToken)}`;
+      console.log('Connecting to WebSocket:', wsUrl);
+      this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
         console.log('WebSocket connected');
