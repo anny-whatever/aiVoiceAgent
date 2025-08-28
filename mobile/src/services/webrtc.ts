@@ -31,12 +31,31 @@ export async function connectRealtime({
 }: ConnectOpts) {
   // Enable audio for React Native (skip on web)
   if (Platform.OS !== 'web') {
-    await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      shouldDuckAndroid: false, // Prevent ducking to avoid feedback
+      playThroughEarpieceAndroid: false,
+    });
     
-    // Start InCallManager and force speaker (only on native)
+    // Start InCallManager with proper audio routing (only on native)
     if (InCallManager) {
-      InCallManager.start({ media: 'audio' });
+      InCallManager.start({ 
+        media: 'audio', 
+        auto: false, 
+        ringback: false 
+      });
+      
+      // Force speaker output for better audio experience
       InCallManager.setForceSpeakerphoneOn(true);
+      InCallManager.setSpeakerphoneOn(true);
+      
+      // Set audio device to speaker
+      InCallManager.chooseAudioRoute('SPEAKER');
+      
+      // Enable proximity sensor management
+      InCallManager.setKeepScreenOn(true);
     }
   }
 
@@ -128,6 +147,14 @@ export function sendFunctionResult(
 export function cleanupWebRTC() {
   // Stop InCallManager (only on native platforms)
   if (Platform.OS !== 'web' && InCallManager) {
-    InCallManager.stop();
+    try {
+      // Reset audio routing before stopping
+      InCallManager.setSpeakerphoneOn(false);
+      InCallManager.setForceSpeakerphoneOn(false);
+      InCallManager.setKeepScreenOn(false);
+      InCallManager.stop();
+    } catch (error) {
+      console.warn('Error cleaning up InCallManager:', error);
+    }
   }
 }

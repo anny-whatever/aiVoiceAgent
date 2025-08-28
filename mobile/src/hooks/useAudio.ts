@@ -31,11 +31,23 @@ export const useAudio = () => {
         soundRef.current = null;
       }
 
+      // Try to create sound from file, fallback to system sound if files don't exist
+      let soundSource;
+      try {
+        soundSource = type === 'user' 
+          ? require('../../assets/sounds/user-ding.mp3')
+          : require('../../assets/sounds/ai-ding.mp3');
+      } catch (requireError) {
+        console.log(`Audio file not found for ${type} ding, using system sound fallback`);
+        // Use a simple system beep or just log the action
+        console.log(`${type === 'user' ? 'User' : 'AI'} ding triggered`);
+        setIsLoading(false);
+        return;
+      }
+
       // Create new sound
       const { sound } = await Audio.Sound.createAsync(
-        type === 'user' 
-          ? require('../../assets/sounds/user-ding.mp3') // You'll need to add these sound files
-          : require('../../assets/sounds/ai-ding.mp3'),
+        soundSource,
         { shouldPlay: true }
       );
       
