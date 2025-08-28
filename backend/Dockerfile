@@ -1,40 +1,51 @@
-# Use Node.js 18 Alpine for smaller image size
-FROM node:18-alpine
+# ===========================
+# Stage 1: Builder
+# ===========================
+FROM node:18-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Install dependencies (with dev, so we have typescript)
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
+# Copy source and build
 COPY . .
-
-# Build the TypeScript code
 RUN npm run build
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S backend -u 1001
 
-# Create data directory for SQLite database
-RUN mkdir -p /app/data && chown -R backend:nodejs /app/data
+# ===========================
+# Stage 2: Runtime
+# ===========================
+FROM node:18-alpine AS runtime
 
-# Change ownership of the app directory
-RUN chown -R backend:nodejs /app
+WORKDIR /app
 
-# Switch to non-root user
+# Install only production dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy built JS files from builder
+COPY --from=builder /app/dist ./dist
+
+# Copy any other required runtime files
+COPY --from=builder /app/package.json ./package.json
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs \
+ && adduser -S backend -u 1001
+
+# Create data dir
+RUN mkdir -p /app/data && chown -R backend:nodejs /app
+
 USER backend
 
-# Expose port
 EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the application
-CMD ["npm", "start"]
+# Start the app
+CMD ["node", "dist/index.js"]
