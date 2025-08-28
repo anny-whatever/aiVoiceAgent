@@ -23,6 +23,49 @@ router.use(addSessionHeaders);
 
 // User listing endpoint removed for security - users should not be exposed
 
+/** Get user data endpoint - for fetching user information including name */
+router.get("/user/:firebase_uid", 
+  validateApiKey,
+  async (req, res) => {
+    try {
+      const { firebase_uid } = req.params;
+      
+      if (!firebase_uid) {
+        return res.status(400).json({
+          error: "Firebase UID is required",
+          message: "Please provide firebase_uid in the URL path"
+        });
+      }
+      
+      const user = await UserService.getUserByFirebaseUid(firebase_uid);
+      
+      if (!user) {
+        return res.status(404).json({
+          error: "User not found",
+          message: `No user found with firebase_uid: ${firebase_uid}`
+        });
+      }
+      
+      // Return only necessary user data for frontend
+      return res.json({
+        success: true,
+        user: {
+          id: user.firebase_uid,
+          name: user.name,
+          email: user.email,
+          is_active: user.is_active
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      return res.status(500).json({
+        error: "Failed to fetch user data",
+        message: "Internal server error"
+      });
+    }
+  }
+);
+
 /** Tool endpoint invoked by the browser when model requests get_driving_data */
 router.post("/tools/get_driving_data", 
   validateApiKey,

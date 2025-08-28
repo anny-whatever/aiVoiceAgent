@@ -90,15 +90,44 @@ export default function App() {
         }
       );
 
-      // Create a mock users array for the single user
-      const mockUsers = [{ id: urlParams.uid, name: `User ${urlParams.uid}` }];
-      
-      webRTC.setupSession(
-        urlParams.uid,
-        mockUsers,
-        languages.selectedLanguage,
-        languages.getLanguageNativeName(languages.selectedLanguage)
-      );
+      // Fetch real user data from the API
+      try {
+        const response = await fetch(`http://localhost:3001/api/user/${urlParams.uid}?api=${urlParams.apiKey}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch user data: ${response.status}`);
+        }
+        
+        const userData = await response.json();
+        
+        if (!userData.success || !userData.user) {
+          throw new Error('Invalid user data received from API');
+        }
+        
+        // Create users array with real user data
+        const users = [{
+          id: userData.user.id,
+          name: userData.user.name || `User ${userData.user.id}`
+        }];
+        
+        webRTC.setupSession(
+          urlParams.uid,
+          users,
+          languages.selectedLanguage,
+          languages.getLanguageNativeName(languages.selectedLanguage)
+        );
+      } catch (userFetchError) {
+        console.error('Failed to fetch user data, falling back to mock:', userFetchError);
+        // Fallback to mock users if API call fails
+        const mockUsers = [{ id: urlParams.uid, name: `User ${urlParams.uid}` }];
+        
+        webRTC.setupSession(
+          urlParams.uid,
+          mockUsers,
+          languages.selectedLanguage,
+          languages.getLanguageNativeName(languages.selectedLanguage)
+        );
+      }
     } catch (error) {
       console.error("Failed to start:", error);
     }
