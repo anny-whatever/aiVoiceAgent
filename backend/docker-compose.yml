@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Backend service only (MongoDB Atlas used externally)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aivoice-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGODB_URI=${MONGODB_URI}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+    ports:
+      - "3001:3001"
+      - "80:3001"  # Also expose on port 80 for easier access
+    volumes:
+      - backend_data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  backend-network:
+    driver: bridge
+
+volumes:
+  backend_data:
+    driver: local
