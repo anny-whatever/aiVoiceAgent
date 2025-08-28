@@ -48,40 +48,41 @@ export async function assessUserMood(
         messages: [
           {
             role: "system",
-            content: `You are an expert human emotion and tone analyst who understands ALL languages. Analyze EVERY human response for emotional undertones, context, and implied mood - even in seemingly neutral statements. You will receive responses in ANY language (English, Spanish, French, German, etc.) and must detect the underlying emotional state and tone regardless of language.
+            content: `You are an expert human emotion and tone analyst who understands ALL languages. Analyze EVERY human response for emotional undertones, context, and implied mood - even in seemingly neutral statements. You will receive responses in ANY language (English, Spanish, French, German, etc.).
 
 LANGUAGE SUPPORT: Analyze emotional content in any language and respond in English with mood assessment.
 
 AVAILABLE MOODS (choose exactly one):
-- ecstatic: Over the moon, thrilled, euphoric, extremely happy, beyond excited
-- excited: High energy, enthusiastic, pumped, eager, very positive
-- happy: Joyful, cheerful, upbeat, pleased, good spirits
-- content: Satisfied, peaceful, balanced, good, fine, comfortable
-- neutral: Baseline, standard, no strong emotion, just okay
-- calm: Relaxed, serene, composed, tranquil, at peace
-- tired: Fatigued, drained, low energy, weary, exhausted
-- sad: Down, melancholy, unhappy, disappointed, blue
-- frustrated: Annoyed, irritated, blocked, impatient, stuck
-- stressed: Anxious, overwhelmed, pressured, tense, worried
-- angry: Mad, furious, rage, hostile, very upset
+- happy: Joyful, cheerful, upbeat, pleased, good spirits, excited, enthusiastic, positive, great, wonderful, nice, awesome, fantastic, amazing, thrilled
+- content: Satisfied, peaceful, balanced, good, fine, comfortable, okay, alright, decent, pleasant, relaxed, calm
+- neutral: Baseline, standard, no strong emotion, just okay, nothing special, regular, normal
+- tired: Fatigued, drained, low energy, weary, exhausted, sleepy, worn out, depleted
+- stressed: Anxious, overwhelmed, pressured, tense, worried, frustrated, annoyed, irritated, angry, upset, mad
 
-UNIVERSAL ANALYSIS RULES - ANALYZE EVERYTHING IN ANY LANGUAGE:
-1. DIRECT emotions: "I'm happy", "Estoy feliz", "Je suis heureux", "Ich bin glücklich"
-2. INDIRECT emotions: "not so good", "no muy bien", "pas terrible", "nicht so gut"
-3. NEUTRAL requests: "Tell me about my trips", "Dime sobre mis viajes", "Parle-moi de mes trajets"
-4. QUESTIONS: "What's the traffic like?", "¿Cómo está el tráfico?", "Comment est la circulation?"
-5. COMMANDS: "Turn left", "Gira a la izquierda", "Tourne à gauche", "Biege links ab"
-6. GREETINGS: "Hello", "Hola", "Salut", "Hallo" (detect energy level, enthusiasm, tiredness)
-7. ACKNOWLEDGMENTS: "Thanks", "Gracias", "Merci", "Danke" (analyze satisfaction, resignation)
-8. CASUAL responses: "whatever", "lo que sea", "peu importe", "was auch immer"
-9. CONTEXT clues: Word choice, sentence structure, cultural expressions in any language
-10. CROSS-LANGUAGE indicators: Emotional expressions transcend language barriers
+CRITICAL DETECTION RULES - FOLLOW THESE EXACTLY:
+0. MOST IMPORTANT RULE: DONT ONLY LOOK AT THE MENTIONED WORS BUT BE WSMART ABOUT THE MEANING OF THE SPEECH AND WORDS AND MAJORLY ASSES THE MOOD BASED ON THE MEANING, TONE AND SEMANTIC OF THE SPEECH, BELOW ARE JUST SOME WORD BASED GUIDELINES BUT THE MOODS ARE NOT TO BE JUST ASSESSED BASED ON THE MENTIONED WORDS 
+
+1. ANY POSITIVE WORD = HAPPY MOOD: "nice", "extra nice", "really nice", "super nice", "great", "wonderful", "good", "awesome", "fantastic", "amazing", "love", "excited", "thrilled", "excellent", "perfect", "brilliant", "marvelous", "superb", "outstanding", "fabulous"
+2. POSITIVE INTENSIFIERS = DEFINITELY HAPPY: "extra", "really", "super", "very", "so", "extremely", "incredibly", "absolutely" + any positive word
+3. SATISFACTION WORDS = CONTENT: "fine", "okay", "alright", "decent", "comfortable", "peaceful", "relaxed" (ONLY if no positive intensifiers)
+4. ENERGY WORDS = HAPPY: "pumped", "energetic", "enthusiastic", "eager", "ready", "motivated"
+5. NEGATIVE WORDS = STRESSED: "bad", "terrible", "awful", "frustrated", "annoyed", "worried", "anxious", "upset"
+6. LOW ENERGY = TIRED: "tired", "exhausted", "drained", "sleepy", "worn out"
+
+UNIVERSAL ANALYSIS RULES:
+1. DIRECT emotions: "I'm happy", "feeling really nice", "I'm great", "wonderful day"
+2. POSITIVE PHRASES: Always classify as HAPPY, never neutral
+3. GREETINGS: Detect energy level, enthusiasm, or tiredness in tone
+4. ACKNOWLEDGMENTS: Analyze satisfaction vs resignation
+5. CONTEXT clues: Word choice, sentence structure, cultural expressions
+6. ENTHUSIASM indicators: Exclamation marks, positive adjectives, upbeat language
 
 MOOD CHANGE DETECTION:
 ${moodContext}
 - If mood seems to have changed, choose the NEW mood with appropriate confidence
 - If mood appears stable, confirm the current mood
 - Be sensitive to even subtle emotional shifts
+- ALWAYS PRIORITIZE POSITIVE MOOD DETECTION - if there's ANY positive language, choose HAPPY over neutral
 
 CONFIDENCE SCORING:
 - 0.9-1.0: Very clear emotional indicators
@@ -92,7 +93,7 @@ CONFIDENCE SCORING:
 
 Respond ONLY with a JSON object in this exact format:
 {
-  "mood": "one_of_the_eleven_moods",
+  "mood": "one_of_the_five_moods",
   "confidence": 0.75,
   "reasoning": "Brief explanation of semantic and tone analysis"
 }`,

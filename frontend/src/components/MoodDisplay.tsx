@@ -13,6 +13,8 @@ export const MoodDisplay: React.FC<MoodDisplayProps> = ({
   getMoodEmoji,
   getMoodColor,
 }) => {
+
+  
   // Always show the mood display - even if no mood detected yet
   return (
     <div className="p-4 mb-6 bg-gradient-to-r from-gray-800/80 to-gray-900/80 rounded-xl border border-gray-700/50 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">

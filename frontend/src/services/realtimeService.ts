@@ -156,10 +156,7 @@ export class RealtimeEventHandler {
       const args = JSON.parse(event.arguments || "{}");
       args.userId = this.args.selectedUser;
       args.sessionId = `session-${Date.now()}-${this.args.selectedUser}`;
-      console.log("🧠 Calling mood assessment with args:", args);
-
       const result = await ApiService.assessUserMood(args);
-      console.log("✅ Mood assessment result:", result);
 
       // Update mood state for UI display
       if (result.assessment) {
@@ -169,7 +166,6 @@ export class RealtimeEventHandler {
 
       // Update session with mood-based instructions if provided
       if (result.instructions && this.args.dcRef.current) {
-        console.log("🔄 Updating session with mood-based instructions");
         setTimeout(() => {
           if (this.args.dcRef.current) {
             this.args.sendSessionUpdate(this.args.dcRef.current, {
@@ -180,7 +176,6 @@ export class RealtimeEventHandler {
       }
 
       if (this.args.dcRef.current) {
-        console.log("📤 Sending mood assessment result back to model");
         this.args.sendFunctionResult(
           this.args.dcRef.current,
           event.call_id,
@@ -189,7 +184,7 @@ export class RealtimeEventHandler {
 
         setTimeout(() => {
           if (this.args.dcRef.current) {
-            console.log("📤 Triggering model response after mood assessment");
+    
             this.args.sendResponseCreate(this.args.dcRef.current);
           }
         }, 100);

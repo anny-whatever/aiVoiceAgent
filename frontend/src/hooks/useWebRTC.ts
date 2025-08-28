@@ -251,7 +251,7 @@ You MUST use the available functions when appropriate. Mood can change during co
               type: "function",
               name: "assess_user_mood",
               description:
-                "MANDATORY: Call this function for EVERY SINGLE user response in the conversation - no exceptions. Whether they're expressing emotions, asking about trips, giving directions, saying hello, or anything else, ALWAYS call this function first with their exact response text. This ensures continuous tone and context monitoring throughout the entire conversation. Call this for emotional responses, neutral responses, questions, statements, requests - EVERYTHING.",
+                "Call this function ONLY for actual user responses after the conversation has started and the assistant has asked about the user's mood. DO NOT call this function for system prompts, initialization messages, or before the user has been greeted and asked about their mood. Only assess mood for genuine user responses that come after the assistant has properly introduced itself and asked how the user is feeling. This ensures mood assessment happens at the right time in the conversation flow.",
               parameters: {
                 type: "object",
                 properties: {

@@ -11,8 +11,10 @@ export interface Language {
 }
 
 export interface MoodAssessment {
-  mood: "energetic" | "content" | "neutral" | "tired" | "stressed";
+  mood: "happy" | "content" | "neutral" | "tired" | "stressed";
   confidence: number;
+  reasoning?: string;
+  timestamp?: string;
 }
 
 export interface ConnectionStatus {
