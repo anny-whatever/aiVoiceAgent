@@ -50,7 +50,7 @@ export default function App() {
   const eventHandler = new RealtimeEventHandler({
     selectedUser: urlParams?.uid || 'unknown',
     dcRef: webRTC.refs.dc,
-    backendUrl: "http://localhost:3001",
+    backendUrl: process.env.REACT_APP_BACKEND,
     setCurrentMood: mood.setCurrentMood,
     setMoodConfidence: mood.setMoodConfidence,
     setIsListening: webRTC.setIsListening,
@@ -91,7 +91,7 @@ export default function App() {
 
       // Fetch real user data from the API
       try {
-        const response = await fetch(`http://localhost:3001/api/user/${urlParams.uid}?api=${urlParams.apiKey}`);
+        const response = await fetch(`${process.env.REACT_APP_BACKEND}/api/user/${urlParams.uid}?api=${urlParams.apiKey}`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch user data: ${response.status}`);

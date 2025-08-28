@@ -20,7 +20,7 @@ const app = express();
 // Security-ish middleware
 app.use(
   cors({
-    origin: [ENV.FRONTEND_URL, "http://localhost:8082", "http://localhost:5173", "http://localhost:5174"],
+    origin: [ENV.FRONTEND_URL, "http://localhost:8082", "http://localhost:5173", "http://localhost:5174", "http://34.14.216.231:5173"],
     credentials: true,
   })
 );
