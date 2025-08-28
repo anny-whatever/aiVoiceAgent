@@ -10,7 +10,7 @@ const FAKE_USERS = [
     emailVerified: true
   },
   {
-    uid: 'firebase_user_001_jane_smith', 
+    uid: 'firebase_user_002_jane_smith', 
     email: 'jane.smith@example.com',
     displayName: 'Jane Smith',
     photoURL: null,
