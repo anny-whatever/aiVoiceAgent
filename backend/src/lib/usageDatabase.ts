@@ -83,15 +83,12 @@ class UsageDatabase {
                 user_id TEXT,
                 month TEXT,
                 total_seconds INTEGER DEFAULT 0,
-                sessions_count INTEGER DEFAULT 0,
-                last_reset TEXT,
                 session_time_remaining INTEGER DEFAULT 0,
                 PRIMARY KEY (user_id, month)
               );
 
               CREATE TABLE IF NOT EXISTS user_limits (
                 user_id TEXT PRIMARY KEY,
-                monthly_limit_seconds INTEGER DEFAULT ${DEFAULT_LIMITS.monthlyLimitSeconds},
                 session_limit_seconds INTEGER DEFAULT ${DEFAULT_LIMITS.sessionLimitSeconds},
                 max_concurrent_sessions INTEGER DEFAULT ${DEFAULT_LIMITS.maxConcurrentSessions},
                 enabled INTEGER DEFAULT 1
@@ -184,8 +181,6 @@ class UsageDatabase {
               userId: row.user_id,
               month: row.month,
               totalSeconds: row.total_seconds,
-              sessionsCount: row.sessions_count,
-              lastReset: row.last_reset,
               sessionTimeRemaining: row.session_time_remaining || 0,
             } : null);
           }
@@ -206,9 +201,9 @@ class UsageDatabase {
     return new Promise((resolve, reject) => {
       this.db!.run(
         `INSERT OR REPLACE INTO user_usage 
-         (user_id, month, total_seconds, sessions_count, last_reset, session_time_remaining) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [usage.userId, usage.month, usage.totalSeconds, usage.sessionsCount, usage.lastReset, usage.sessionTimeRemaining],
+         (user_id, month, total_seconds, session_time_remaining) 
+         VALUES (?, ?, ?, ?)`,
+        [usage.userId, usage.month, usage.totalSeconds, usage.sessionTimeRemaining],
         (err: Error | null) => {
           if (err) {
             reject(err);
@@ -240,7 +235,6 @@ class UsageDatabase {
           } else {
             resolve(row ? {
               userId: row.user_id,
-              monthlyLimitSeconds: row.monthly_limit_seconds,
               sessionLimitSeconds: row.session_limit_seconds,
               maxConcurrentSessions: row.max_concurrent_sessions,
               enabled: Boolean(row.enabled),
@@ -264,9 +258,9 @@ class UsageDatabase {
     return new Promise((resolve, reject) => {
       this.db!.run(
         `INSERT OR REPLACE INTO user_limits 
-         (user_id, monthly_limit_seconds, session_limit_seconds, max_concurrent_sessions, enabled) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [limits.userId, limits.monthlyLimitSeconds, limits.sessionLimitSeconds, 
+         (user_id, session_limit_seconds, max_concurrent_sessions, enabled) 
+         VALUES (?, ?, ?, ?)`,
+        [limits.userId, limits.sessionLimitSeconds, 
          limits.maxConcurrentSessions, limits.enabled ? 1 : 0],
         (err: Error | null) => {
           if (err) {

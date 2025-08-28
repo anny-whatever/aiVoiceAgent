@@ -100,8 +100,6 @@ class UsageService {
         userId,
         month: currentMonth,
         totalSeconds: 0,
-        sessionsCount: 0,
-        lastReset: new Date().toISOString(),
         sessionTimeRemaining: SESSION_TIME_CONFIG.INITIAL_SESSION_TIME,
       };
       await usageDB.updateUserUsage(monthlyUsage);
@@ -290,8 +288,6 @@ class UsageService {
       userId: activeSession.userId,
       month: currentMonth,
       totalSeconds: (existingUsage?.totalSeconds || 0) + timeUsedInSession,
-      sessionsCount: (existingUsage?.sessionsCount || 0) + 1,
-      lastReset: existingUsage?.lastReset || new Date().toISOString(),
       sessionTimeRemaining: newRemaining,
     };
 
@@ -318,7 +314,7 @@ class UsageService {
     ]);
 
     const usedThisMonth = monthlyUsage?.totalSeconds || 0;
-    const quotaRemaining = Math.max(0, limits.monthlyLimitSeconds - usedThisMonth);
+    const quotaRemaining = monthlyUsage?.sessionTimeRemaining || 0;
 
     return {
       monthlyUsage,
@@ -411,8 +407,6 @@ class UsageService {
       userId,
       month: currentMonth,
       totalSeconds: 0,
-      sessionsCount: 0,
-      lastReset: new Date().toISOString(),
       sessionTimeRemaining: SESSION_TIME_CONFIG.INITIAL_SESSION_TIME,
     };
     

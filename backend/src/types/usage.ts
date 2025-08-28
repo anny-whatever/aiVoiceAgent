@@ -2,14 +2,11 @@ export interface UserUsage {
   userId: string;
   month: string; // YYYY-MM format
   totalSeconds: number;
-  sessionsCount: number;
-  lastReset: string; // ISO timestamp
-  sessionTimeRemaining: number; // Remaining session time in seconds
+  sessionTimeRemaining: number; // Seconds remaining for current session
 }
 
 export interface UserLimits {
   userId: string;
-  monthlyLimitSeconds: number;
   sessionLimitSeconds: number;
   maxConcurrentSessions: number;
   enabled: boolean;
@@ -56,8 +53,7 @@ export interface QuotaWarning {
 
 // Default limits
 export const DEFAULT_LIMITS: Omit<UserLimits, 'userId'> = {
-  monthlyLimitSeconds: 30 * 60 * 60, // 30 hours per month
-  sessionLimitSeconds: 15 * 60, // 15 minutes (initial allocation)
+  sessionLimitSeconds: 15 * 60, // 15 minutes per session
   maxConcurrentSessions: 3,
   enabled: true,
 };
