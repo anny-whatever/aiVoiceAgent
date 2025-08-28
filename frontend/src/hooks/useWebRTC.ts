@@ -254,52 +254,6 @@ When you call any function (get_driving_data, get_user_info, get_vehicle_info), 
 5. NEVER add fictional details like "park strolls" or "motor visits" that aren't in the actual data
 6. Present the real data in a conversational way but keep all facts accurate
 
-SPECIFIC TRIP DATA HANDLING:
-The get_driving_data function returns a JSON response with this EXACT structure:
-{
-  "success": boolean,
-  "content": "string description",
-  "data": [
-    {
-      "id": "string",
-      "sid": "string",
-      "startAddress": "exact address like '10 Test Street, Mumbai'",
-      "endAddress": "exact address like '575 Destination Road, Mumbai'",
-      "startLat": number,
-      "startLong": number,
-      "endLat": number,
-      "endLong": number,
-      "distance": number (in km),
-      "totalDistance": number,
-      "duration_seconds": number,
-      "start_time": "ISO timestamp",
-      "end_time": "ISO timestamp",
-      "max_speed_kmh": number,
-      "average_speed_kmh": number,
-      "eco_score": number,
-      "safety_violations": number,
-      "harsh_braking_count": number,
-      "harsh_acceleration_count": number,
-      "sharp_turn_count": number,
-      "speeding_violations": number,
-      "is_first_drive_today": boolean,
-      "is_weekend_drive": boolean,
-      "is_night_drive": boolean,
-      "is_morning_commute": boolean,
-      "coins": number,
-      "rewardPoints": number,
-      "pointsPerKm": number,
-      "status": "completed"
-    }
-  ],
-  "metadata": {
-    "userId": "string",
-    "query": "user's original query",
-    "timestamp": "ISO timestamp",
-    "totalTrips": number
-  }
-}
-
 When presenting trip data, use ONLY the actual values from these fields:
 - Use the EXACT startAddress and endAddress (e.g., "10 Test Street, Mumbai" to "575 Destination Road, Mumbai")
 - Use the actual distance and totalDistance in kilometers (e.g., 28.4 km)
@@ -354,12 +308,17 @@ You MUST use the available functions when appropriate. Mood can change during co
                     type: "string",
                     description: "The firebase_uid of the user whose data to retrieve",
                   },
+                  queryType: {
+                    type: "string",
+                    enum: ["streak", "driving_stats", "profile", "achievements", "general"],
+                    description: "Type of user information: streak (daily streak data), driving_stats (trip statistics and performance), profile (profile completion status), achievements (unlocked achievements), general (overview of all user data)",
+                  },
                   query: {
                     type: "string",
-                    description: "Description of what user information is being requested (e.g., 'streak', 'driving stats', 'profile', 'achievements')",
+                    description: "Natural language fallback - use queryType enum instead when possible",
                   },
                 },
-                required: ["userId", "query"],
+                required: ["userId"],
               },
             },
             {
@@ -374,12 +333,17 @@ You MUST use the available functions when appropriate. Mood can change during co
                     type: "string",
                     description: "The firebase_uid of the user whose vehicle data to retrieve",
                   },
+                  queryType: {
+                    type: "string",
+                    enum: ["primary_vehicle", "all_vehicles", "insurance", "condition", "general"],
+                    description: "Type of vehicle information: primary_vehicle (main/primary vehicle details), all_vehicles (list all vehicles), insurance (insurance details and expiry), condition (vehicle condition and known issues), general (overview of all vehicles)",
+                  },
                   query: {
                     type: "string",
-                    description: "Description of what vehicle information is being requested (e.g., 'primary vehicle', 'insurance', 'condition', 'all vehicles')",
+                    description: "Natural language fallback - use queryType enum instead when possible",
                   },
                 },
-                required: ["userId", "query"],
+                required: ["userId"],
               },
             },
             {
@@ -394,12 +358,23 @@ You MUST use the available functions when appropriate. Mood can change during co
                     type: "string",
                     description: "The firebase_uid of the user whose trip data to retrieve",
                   },
+                  queryType: {
+                    type: "string",
+                    enum: ["recent_trips", "last_n_trips", "today", "yesterday", "this_week", "last_week", "this_month", "driving_history"],
+                    description: "Type of driving data query: recent_trips (default recent trips), last_n_trips (specific number of recent trips), today (trips from today), yesterday (trips from yesterday), this_week/last_week (weekly trips), this_month (monthly trips), driving_history (general history)",
+                  },
+                  limit: {
+                    type: "number",
+                    minimum: 1,
+                    maximum: 10,
+                    description: "Number of trips to retrieve (only for recent_trips/last_n_trips queries, defaults to 5)",
+                  },
                   query: {
                     type: "string",
-                    description: "Exact description of what the user is asking about (e.g., 'last 3 trips', 'recent trips', 'driving history', 'last trip', 'trips today', 'trips this week')",
+                    description: "Natural language fallback - use queryType enum instead when possible",
                   },
                 },
-                required: ["userId", "query"],
+                required: ["userId"],
               },
             },
           ],

@@ -9,6 +9,13 @@ import {
   generateMoodInstructions,
 } from "../lib/moodSystem";
 import { UserMood } from "../types/mood";
+import {
+  DrivingDataQueryType,
+  UserInfoQueryType,
+  VehicleInfoQueryType,
+  mapQueryToType,
+  extractLimitFromQuery
+} from "../types/toolEnums.js";
 
 import { validateApiKey, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
 import { extractFirebaseUid, AuthenticatedRequest } from "../middleware/authMiddleware.js";
@@ -74,7 +81,7 @@ router.post("/tools/get_driving_data",
     try {
       console.log("🔧 Tool called:", req.body);
       
-      const { query, timeRange, startDate, endDate } = req.body || {};
+      const { query, queryType, limit, timeRange, startDate, endDate } = req.body || {};
       const userId = req.firebase_uid; // Get from middleware
       
       if (!userId) {
@@ -84,13 +91,14 @@ router.post("/tools/get_driving_data",
         });
       }
       
-      if (!query) {
+      if (!query && !queryType) {
         console.error("❌ Missing required parameters:", {
           query,
+          queryType,
           body: req.body,
         });
         return res.status(400).json({
-          error: "Query parameter is required",
+          error: "Query or queryType parameter is required",
           received: req.body,
         });
       }
@@ -101,66 +109,57 @@ router.post("/tools/get_driving_data",
       let trips: any[] = [];
       let content = "";
       
-      // Parse query to determine what trips to fetch
-      const queryLower = query.toLowerCase();
+      // Determine query type - use enum if provided, otherwise map from natural language
+      const resolvedQueryType = queryType || mapQueryToType(query, 'get_driving_data');
+      const tripLimit = limit || (query ? extractLimitFromQuery(query) : 5);
       
-      if (queryLower.includes('last') || queryLower.includes('recent')) {
-        // Extract number from query (e.g., "last 3 trips", "recent 5 trips")
-        const numberMatch = queryLower.match(/\b(\d+)\b/);
-        const limit = numberMatch ? parseInt(numberMatch[1]) : 5;
-        
-        trips = await TripService.getRecentTrips(userId, Math.min(limit, 10)); // Cap at 10 for performance
-        content = `Found ${trips.length} recent trip${trips.length !== 1 ? 's' : ''} for the user.`;
-      } else if (queryLower.includes('today')) {
-        trips = await TripService.getTripsToday(userId);
-        content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} for today.`;
-      } else if (queryLower.includes('yesterday')) {
-        trips = await TripService.getTripsYesterday(userId);
-        content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} for yesterday.`;
-      } else if (queryLower.includes('week')) {
-        trips = await TripService.getTripsLastWeek(userId);
-        content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} from the last week.`;
-      } else if (queryLower.includes('month')) {
-        trips = await TripService.getTripsThisMonth(userId);
-        content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} from this month.`;
-      } else {
-        // Default to recent trips
-        trips = await TripService.getRecentTrips(userId, 5);
-        content = `Found ${trips.length} recent trip${trips.length !== 1 ? 's' : ''} for the user.`;
+      // Execute query based on enum type
+      switch (resolvedQueryType) {
+        case DrivingDataQueryType.RECENT_TRIPS:
+        case DrivingDataQueryType.LAST_N_TRIPS:
+          trips = await TripService.getRecentTrips(userId, Math.min(tripLimit, 10));
+          content = `Found ${trips.length} recent trip${trips.length !== 1 ? 's' : ''} for the user.`;
+          break;
+          
+        case DrivingDataQueryType.TODAY:
+          trips = await TripService.getTripsToday(userId);
+          content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} for today.`;
+          break;
+          
+        case DrivingDataQueryType.YESTERDAY:
+          trips = await TripService.getTripsYesterday(userId);
+          content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} for yesterday.`;
+          break;
+          
+        case DrivingDataQueryType.THIS_WEEK:
+        case DrivingDataQueryType.LAST_WEEK:
+          trips = await TripService.getTripsLastWeek(userId);
+          content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} from the last week.`;
+          break;
+          
+        case DrivingDataQueryType.THIS_MONTH:
+          trips = await TripService.getTripsThisMonth(userId);
+          content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} from this month.`;
+          break;
+          
+        case DrivingDataQueryType.DRIVING_HISTORY:
+        default:
+          trips = await TripService.getRecentTrips(userId, Math.min(tripLimit, 10));
+          content = `Found ${trips.length} trip${trips.length !== 1 ? 's' : ''} from driving history.`;
+          break;
       }
       
-      // Format trip data for response with new structure
+      // Format trip data for response with simplified structure (only 9 essential fields)
       const formattedTrips = trips.map(trip => ({
-        id: trip._id,
-        sid: trip.sid,
         startAddress: trip.startAddress,
         endAddress: trip.endAddress,
-        startLat: trip.startLat,
-        startLong: trip.startLong,
-        endLat: trip.endLat,
-        endLong: trip.endLong,
         distance: trip.distance,
-        totalDistance: trip.totalDistance,
         duration_seconds: trip.duration_seconds,
         start_time: trip.start_time,
         end_time: trip.end_time,
-        max_speed_kmh: trip.max_speed_kmh,
         average_speed_kmh: trip.average_speed_kmh,
         eco_score: trip.eco_score,
-        safety_violations: trip.safety_violations,
-        harsh_braking_count: trip.harsh_braking_count,
-        harsh_acceleration_count: trip.harsh_acceleration_count,
-        sharp_turn_count: trip.sharp_turn_count,
-        speeding_violations: trip.speeding_violations,
-        is_first_drive_today: trip.is_first_drive_today,
-        is_weekend_drive: trip.is_weekend_drive,
-        is_night_drive: trip.is_night_drive,
-        is_morning_commute: trip.is_morning_commute,
-        coins: trip.coins,
-        rewardPoints: trip.rewardPoints,
-        pointsPerKm: trip.pointsPerKm,
-        status: trip.status,
-        bonus_multipliers_applied: trip.bonus_multipliers_applied
+        rewardPoints: trip.rewardPoints
       }));
       
       return res.json({
@@ -192,7 +191,7 @@ router.post("/tools/get_user_info",
     try {
       console.log("👤 User info tool called:", req.body);
       
-      const { query } = req.body || {};
+      const { query, queryType } = req.body || {};
       const userId = req.firebase_uid; // Get from middleware
       
       if (!userId) {
@@ -202,13 +201,14 @@ router.post("/tools/get_user_info",
         });
       }
       
-      if (!query) {
+      if (!query && !queryType) {
         console.error("❌ Missing required parameters:", {
           query,
+          queryType,
           body: req.body,
         });
         return res.status(400).json({
-          error: "Query parameter is required",
+          error: "Query or queryType parameter is required",
           received: req.body,
         });
       }
@@ -255,20 +255,40 @@ router.post("/tools/get_user_info",
         }
       };
 
-      // Format response based on query
+      // Format response based on query type
       let content = "";
-      const queryLower = query.toLowerCase();
+      const resolvedQueryType = queryType || mapQueryToType(query, 'get_user_info');
       
-      if (queryLower.includes('streak')) {
-        content = `Your current daily streak is ${userInfo.streak_data.current_daily_streak} days. Your longest streak was ${userInfo.streak_data.longest_daily_streak} days.`;
-        if (userInfo.streak_data.last_activity_date) {
-          content += ` Last activity: ${new Date(userInfo.streak_data.last_activity_date).toLocaleDateString()}.`;
-        }
-      } else if (queryLower.includes('driving') || queryLower.includes('stats')) {
-        content = `Your driving statistics: ${userInfo.driving_stats.total_trips} total trips covering ${userInfo.driving_stats.total_distance_km.toFixed(1)} km. Average eco-score: ${userInfo.driving_stats.eco_score_average}. Safety violations: ${userInfo.driving_stats.safety_violations}. Night drives: ${userInfo.driving_stats.night_drives}, Weekend drives: ${userInfo.driving_stats.weekend_drives}.`;
-      } else {
-        // General user info
-        content = `User Profile Summary:\n- Current streak: ${userInfo.streak_data.current_daily_streak} days\n- Total trips: ${userInfo.driving_stats.total_trips}\n- Total distance: ${userInfo.driving_stats.total_distance_km.toFixed(1)} km\n- Average eco-score: ${userInfo.driving_stats.eco_score_average}\n- Profile completion: ${userInfo.profile_completion.completion_percentage}%`;
+      switch (resolvedQueryType) {
+        case UserInfoQueryType.STREAK:
+          content = `Your current daily streak is ${userInfo.streak_data.current_daily_streak} days. Your longest streak was ${userInfo.streak_data.longest_daily_streak} days.`;
+          if (userInfo.streak_data.last_activity_date) {
+            content += ` Last activity: ${new Date(userInfo.streak_data.last_activity_date).toLocaleDateString()}.`;
+          }
+          break;
+          
+        case UserInfoQueryType.DRIVING_STATS:
+          content = `Your driving statistics: ${userInfo.driving_stats.total_trips} total trips covering ${userInfo.driving_stats.total_distance_km.toFixed(1)} km. Average eco-score: ${userInfo.driving_stats.eco_score_average}. Safety violations: ${userInfo.driving_stats.safety_violations}. Night drives: ${userInfo.driving_stats.night_drives}, Weekend drives: ${userInfo.driving_stats.weekend_drives}.`;
+          break;
+          
+        case UserInfoQueryType.ACHIEVEMENTS:
+          const achievements = Object.entries(userInfo.achievements)
+            .filter(([_, achieved]) => achieved)
+            .map(([name, _]) => name.replace('_', ' '))
+            .join(', ');
+          content = achievements.length > 0 
+            ? `Your achievements: ${achievements}.`
+            : "No achievements unlocked yet.";
+          break;
+          
+        case UserInfoQueryType.PROFILE:
+           content = `Profile completion: ${userInfo.profile_completion.completion_percentage}%. Basic info: ${userInfo.profile_completion.basic_info ? 'Complete' : 'Incomplete'}, Contact verified: ${userInfo.profile_completion.contact_verified ? 'Yes' : 'No'}, Car info: ${userInfo.profile_completion.car_info ? 'Complete' : 'Incomplete'}, License verified: ${userInfo.profile_completion.license_verified ? 'Yes' : 'No'}.`;
+           break;
+          
+        case UserInfoQueryType.GENERAL:
+        default:
+          content = `User Profile Summary:\n- Current streak: ${userInfo.streak_data.current_daily_streak} days\n- Total trips: ${userInfo.driving_stats.total_trips}\n- Total distance: ${userInfo.driving_stats.total_distance_km.toFixed(1)} km\n- Average eco-score: ${userInfo.driving_stats.eco_score_average}\n- Profile completion: ${userInfo.profile_completion.completion_percentage}%`;
+          break;
       }
       
       console.log(
@@ -306,7 +326,7 @@ router.post("/tools/get_vehicle_info",
     try {
       console.log("🚗 Vehicle info tool called:", req.body);
       
-      const { query } = req.body || {};
+      const { query, queryType } = req.body || {};
       const userId = req.firebase_uid; // Get from middleware
       
       if (!userId) {
@@ -316,13 +336,14 @@ router.post("/tools/get_vehicle_info",
         });
       }
       
-      if (!query) {
+      if (!query && !queryType) {
         console.error("❌ Missing required parameters:", {
           query,
+          queryType,
           body: req.body,
         });
         return res.status(400).json({
-          error: "Query parameter is required",
+          error: "Query or queryType parameter is required",
           received: req.body,
         });
       }
@@ -370,40 +391,49 @@ router.post("/tools/get_vehicle_info",
         insurance_details: vehicle.insurance_details
       }));
 
-      // Generate content based on query
+      // Generate content based on query type
       let content = "";
-      const queryLower = query.toLowerCase();
+      const resolvedQueryType = queryType || mapQueryToType(query, 'get_vehicle_info');
       
-      if (queryLower.includes('primary') || queryLower.includes('main')) {
-        const primaryVehicle = vehicleData.find(v => v.is_primary_vehicle);
-        if (primaryVehicle) {
-          content = `Your primary vehicle is a ${primaryVehicle.year} ${primaryVehicle.make} ${primaryVehicle.model}${primaryVehicle.variant ? ` ${primaryVehicle.variant}` : ''} in ${primaryVehicle.color} color. Registration: ${primaryVehicle.registration_number}. Current odometer: ${primaryVehicle.odometer_reading} km.`;
-        } else {
-          content = "No primary vehicle set.";
-        }
-      } else if (queryLower.includes('insurance')) {
-        const vehiclesWithInsurance = vehicleData.filter(v => v.insurance_details);
-        if (vehiclesWithInsurance.length > 0) {
-          content = vehiclesWithInsurance.map(v => 
-            `${v.name}: ${v.insurance_details!.provider} policy ${v.insurance_details!.policy_number}, expires ${new Date(v.insurance_details!.expiry_date).toLocaleDateString()}`
-          ).join('. ');
-        } else {
-          content = "No insurance information available for your vehicles.";
-        }
-      } else if (queryLower.includes('condition') || queryLower.includes('issues')) {
-        content = vehicleData.map(v => {
-          let vehicleInfo = `${v.name}: Condition rating ${v.condition_rating || 'N/A'}/10`;
-          if (v.known_issues && v.known_issues.length > 0) {
-            vehicleInfo += `, Known issues: ${v.known_issues.join(', ')}`;
+      switch (resolvedQueryType) {
+        case VehicleInfoQueryType.PRIMARY_VEHICLE:
+          const primaryVehicle = vehicleData.find(v => v.is_primary_vehicle);
+          if (primaryVehicle) {
+            content = `Your primary vehicle is a ${primaryVehicle.year} ${primaryVehicle.make} ${primaryVehicle.model}${primaryVehicle.variant ? ` ${primaryVehicle.variant}` : ''} in ${primaryVehicle.color} color. Registration: ${primaryVehicle.registration_number}. Current odometer: ${primaryVehicle.odometer_reading} km.`;
+          } else {
+            content = "No primary vehicle set.";
           }
-          return vehicleInfo;
-        }).join('. ');
-      } else {
-        // General vehicle overview
-        content = `You have ${vehicleData.length} vehicle${vehicleData.length > 1 ? 's' : ''}: ` + 
-          vehicleData.map(v => 
-            `${v.year} ${v.make} ${v.model}${v.variant ? ` ${v.variant}` : ''} (${v.name})${v.is_primary_vehicle ? ' - Primary' : ''}`
-          ).join(', ') + '.';
+          break;
+          
+        case VehicleInfoQueryType.INSURANCE:
+          const vehiclesWithInsurance = vehicleData.filter(v => v.insurance_details);
+          if (vehiclesWithInsurance.length > 0) {
+            content = vehiclesWithInsurance.map(v => 
+              `${v.name}: ${v.insurance_details!.provider} policy ${v.insurance_details!.policy_number}, expires ${new Date(v.insurance_details!.expiry_date).toLocaleDateString()}`
+            ).join('. ');
+          } else {
+            content = "No insurance information available for your vehicles.";
+          }
+          break;
+          
+        case VehicleInfoQueryType.CONDITION:
+          content = vehicleData.map(v => {
+            let vehicleInfo = `${v.name}: Condition rating ${v.condition_rating || 'N/A'}/10`;
+            if (v.known_issues && v.known_issues.length > 0) {
+              vehicleInfo += `, Known issues: ${v.known_issues.join(', ')}`;
+            }
+            return vehicleInfo;
+          }).join('. ');
+          break;
+          
+        case VehicleInfoQueryType.ALL_VEHICLES:
+        case VehicleInfoQueryType.GENERAL:
+        default:
+          content = `You have ${vehicleData.length} vehicle${vehicleData.length > 1 ? 's' : ''}: ` + 
+            vehicleData.map(v => 
+              `${v.year} ${v.make} ${v.model}${v.variant ? ` ${v.variant}` : ''} (${v.name})${v.is_primary_vehicle ? ' - Primary' : ''}`
+            ).join(', ') + '.';
+          break;
       }
       
       console.log(

@@ -1,5 +1,25 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+// Define enums for better type safety and validation
+export enum TripStatus {
+  PENDING = 'pending',
+  IN_PROGRESS = 'in_progress', 
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled'
+}
+
+export enum TimeOfDay {
+  MORNING = 'morning',
+  AFTERNOON = 'afternoon', 
+  EVENING = 'evening',
+  NIGHT = 'night'
+}
+
+export enum DayType {
+  WEEKDAY = 'weekday',
+  WEEKEND = 'weekend'
+}
+
 export interface ITrip extends Document {
   sid: string;
   firebase_uid: string;
@@ -29,7 +49,7 @@ export interface ITrip extends Document {
   is_weekend_drive: boolean;
   is_night_drive: boolean;
   is_morning_commute: boolean;
-  status: string;
+  status: TripStatus;
   bonus_multipliers_applied: {
     eco_driving: number;
     first_drive: boolean;
@@ -163,8 +183,8 @@ const TripSchema: Schema = new Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'in_progress', 'completed', 'cancelled'],
-    default: 'pending'
+    enum: Object.values(TripStatus),
+    default: TripStatus.PENDING
   },
   bonus_multipliers_applied: {
     eco_driving: {
