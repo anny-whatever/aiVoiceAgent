@@ -61,7 +61,7 @@ router.post("/session", validateApiKey, async (req, res) => {
         "OpenAI-Beta": "realtime=v1", // not strictly required here, but harmless
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini-realtime-preview-2024-12-17",
+        model: "gpt-4o-realtime-preview-2024-12-17",
         voice: "alloy",
         tools: [],
         instructions: `${userData.instructions}\n\nStart the conversation by asking the user how they're feeling today to assess their mood. Use the assess_user_mood tool to analyze their response and adapt your tone accordingly.\n\nYour session has a time limit of ${Math.floor(validation.sessionTimeRemaining / 60)} minutes. If you receive an END_SESSION action from any tool call, you must immediately end the conversation politely.`,
