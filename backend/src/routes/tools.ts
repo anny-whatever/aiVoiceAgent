@@ -2,6 +2,7 @@ import { Router } from "express";
 import { UserService } from '../services/userService.js';
 import { VehicleService } from '../services/vehicleService.js';
 import { TripService } from '../services/tripService.js';
+import { SearchService } from '../services/searchService.js';
 import { mongoConnection } from '../database/mongodb';
 import {
   assessUserMood,
@@ -551,6 +552,73 @@ router.get("/session/:userId/:sessionId/mood", validateApiKey, (req, res) => {
   }
 });
 
+/** Search tool endpoint - uses SerpAPI Google AI Overview for web search */
+router.post("/tools/search_web", 
+  validateApiKey,
+  extractFirebaseUid,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      console.log("🔍 Search tool called:", req.body);
+      
+      const { query, searchType, wantMoreDetails } = req.body || {};
+      const userId = req.firebase_uid; // Get from middleware
+      
+      if (!userId) {
+        return res.status(401).json({
+          error: "Firebase UID is required",
+          message: "User authentication failed"
+        });
+      }
+      
+      if (!query) {
+        console.error("❌ Missing required parameters:", {
+          query,
+          body: req.body,
+        });
+        return res.status(400).json({
+          error: "Query parameter is required",
+          received: req.body,
+        });
+      }
 
+      // Perform search using SerpAPI
+      const searchResult = await SearchService.searchWithAIOverview(query);
+      
+      if (!searchResult.success) {
+        return res.status(500).json({
+          error: "Search failed",
+          details: searchResult.error,
+          content: searchResult.summary
+        });
+      }
+
+      // Return appropriate response based on wantMoreDetails flag
+      const content = wantMoreDetails ? 
+        searchResult.fullContent || searchResult.summary : 
+        searchResult.summary;
+      
+      return res.json({
+        success: true,
+        content,
+        summary: searchResult.summary,
+        fullContent: searchResult.fullContent,
+        references: searchResult.references,
+        metadata: {
+          userId,
+          query,
+          searchType: searchType || 'general',
+          timestamp: new Date().toISOString(),
+          hasMoreDetails: !!searchResult.fullContent
+        }
+      });
+    } catch (e: any) {
+      console.error("❌ Search tool execution error:", e);
+      return res.status(500).json({
+        error: "Failed to perform search",
+        details: e?.message || "Unknown error",
+      });
+    }
+  }
+);
 
 export default router;

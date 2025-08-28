@@ -103,6 +103,8 @@ export class RealtimeEventHandler {
       await this.handleVehicleInfoCall(event);
     } else if (event.name === "get_user_info") {
       await this.handleUserInfoCall(event);
+    } else if (event.name === "search_web") {
+      await this.handleSearchWebCall(event);
     } else {
       console.warn("⚠️ Unknown function call:", event.name);
     }
@@ -317,6 +319,64 @@ export class RealtimeEventHandler {
           if (this.args.dcRef.current) {
             console.log(
               "📤 Triggering model response after user info error"
+            );
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    }
+  }
+
+  private async handleSearchWebCall(event: any) {
+    try {
+      const args = JSON.parse(event.arguments || "{}");
+      console.log("🔍 Calling backend for web search with args:", args);
+
+      const result = await ApiService.searchWeb(args);
+      console.log("✅ Search web response:", result);
+
+      if (this.args.dcRef.current) {
+        console.log("📤 Sending search result back to model");
+        
+        // Send the search result content to AI
+        const searchData = result.data || {};
+        const functionOutput = {
+          success: searchData.success || false,
+          content: result.content || searchData.summary || "No search results found",
+          summary: searchData.summary || "",
+          hasMoreDetails: searchData.metadata?.hasMoreDetails || false,
+          references: searchData.references || [],
+          query: args.query || ""
+        };
+        
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          JSON.stringify(functionOutput)
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log("📤 Triggering model response after search result");
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error("❌ Search web error:", error);
+      if (this.args.dcRef.current) {
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          `Sorry, I couldn't perform the web search. Error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log(
+              "📤 Triggering model response after search error"
             );
             this.args.sendResponseCreate(this.args.dcRef.current);
           }

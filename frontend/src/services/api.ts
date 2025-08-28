@@ -167,6 +167,21 @@ export class ApiService {
 
     return response.json();
   }
+
+  static async searchWeb(args: any): Promise<ApiResponse> {
+    const response = await fetch(`${BACKEND_URL}/api/tools/search_web?${this.getApiQueryParams()}`, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(args),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Backend error: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
 }
 
 export { BACKEND_URL };

@@ -9,6 +9,7 @@ export const ENV = {
   JWT_SECRET: process.env.JWT_SECRET || "dev-secret-change-in-production",
   DATABASE_PATH: process.env.DATABASE_PATH || "./data/usage.db",
   JSON_FALLBACK_PATH: process.env.JSON_FALLBACK_PATH || "./data/usage.json",
+  SERP_API_KEY: process.env.SERP_API_KEY || "",
 };
 
 if (!ENV.OPENAI_API_KEY) {
@@ -17,6 +18,10 @@ if (!ENV.OPENAI_API_KEY) {
 
 if (!ENV.API_KEY) {
   throw new Error("API_KEY is required");
+}
+
+if (!ENV.SERP_API_KEY) {
+  console.warn("⚠️  WARNING: SERP_API_KEY is not set. Search functionality will be disabled.");
 }
 
 if (ENV.JWT_SECRET === "dev-secret-change-in-production" && process.env.NODE_ENV === "production") {

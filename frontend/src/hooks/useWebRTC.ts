@@ -377,6 +377,31 @@ You MUST use the available functions when appropriate. Mood can change during co
                 required: ["userId"],
               },
             },
+            {
+              type: "function",
+              name: "search_web",
+              description:
+                "Search the web for up-to-date information on any topic using Google AI Overview. Use this tool when the user asks for current information, facts, news, or any data that requires web search. This tool provides a summary first and can provide more details if requested.",
+              parameters: {
+                type: "object",
+                properties: {
+                  query: {
+                    type: "string",
+                    description: "The search query - what the user wants to know about. Can be about cars, traffic, weather, news, general information, or any topic.",
+                  },
+                  searchType: {
+                    type: "string",
+                    enum: ["general", "news", "local", "technical"],
+                    description: "Type of search: general (default), news (current events), local (location-based), technical (detailed information)",
+                  },
+                  wantMoreDetails: {
+                    type: "boolean",
+                    description: "Set to true if user explicitly asks for more detailed information, false for initial summary",
+                  },
+                },
+                required: ["query"],
+              },
+            },
           ],
         });
 
