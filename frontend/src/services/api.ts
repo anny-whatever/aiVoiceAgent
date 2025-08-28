@@ -49,7 +49,7 @@ export class ApiService {
   static async createSession(): Promise<{ apiKey: string; sessionInfo: SessionInfo }> {
     const { apiKey, uid } = getRequiredURLParams();
     
-    const response = await fetch(`${BACKEND_URL}/api/session?api=${apiKey}&uid=${uid}`, {
+    const response = await fetch(`${BACKEND_URL}api/session?api=${apiKey}&uid=${uid}`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json"
