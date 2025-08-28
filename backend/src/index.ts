@@ -1,16 +1,16 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import path, { join } from "path";
 
 import { validateApiKey } from "./middleware/sessionMiddleware";
 import toolsRoutes from "./routes/tools";
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Use CommonJS globals
+const FILE_NAME = __filename;
+const DIR_NAME = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;

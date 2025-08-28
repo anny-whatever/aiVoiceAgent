@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./src",
@@ -13,7 +13,8 @@
     "allowSyntheticDefaultImports": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["node"]          // ✅ add this
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

@@ -1,16 +1,16 @@
-import sqlite3 from 'sqlite3';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import sqlite3 from "sqlite3";
+import { promises as fs } from "fs";
+import path from "path";
 import {
   UserUsage,
   UserLimits,
   ActiveSession,
   DEFAULT_LIMITS,
-} from '../types/usage';
+} from "../types/usage";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// CommonJS already gives __filename and __dirname
+const FILE_NAME = __filename;
+const DIR_NAME = path.dirname(__filename);
 
 class UsageDatabase {
   private db: sqlite3.Database | null = null;

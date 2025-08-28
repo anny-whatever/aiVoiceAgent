@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+import path from "path";
 
 import { ENV } from "./config/env";
 import sessionRouter from "./routes/session";
@@ -11,8 +10,10 @@ import { usageService } from "./lib/usageService";
 import { websocketMonitor } from "./lib/websocketMonitor";
 import { validateApiKey } from "./middleware/sessionMiddleware";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Use CommonJS globals
+const FILE_NAME = __filename;
+const DIR_NAME = path.dirname(__filename);
+
 
 const app = express();
 
