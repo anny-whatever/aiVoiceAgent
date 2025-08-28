@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { SessionToken, TOKEN_CONFIG } from '../types/usage.js';
+import { SessionToken, TOKEN_CONFIG } from '../types/usage';
 
 class TokenManager {
   private secretKey: string;

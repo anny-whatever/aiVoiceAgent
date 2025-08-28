@@ -13,12 +13,11 @@ import { useQuota } from "./hooks/useQuota";
 import { RealtimeEventHandler } from "./services/realtimeService";
 import { getRequiredURLParams } from "./utils/urlParams";
 import {
-  StatusIndicator,
   MoodDisplay,
+  MoodEmoji,
   LanguageSelector,
   VoiceControls,
   InfoPanel,
-  QuotaIndicator,
 } from "./components";
 
 export default function App() {
@@ -153,28 +152,35 @@ export default function App() {
   useEffect(() => () => handleStop(), []);
 
   return (
-    <div className="flex overflow-hidden relative justify-center items-center min-h-screen text-white bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="flex flex-col min-h-screen text-white bg-gradient-to-br from-black via-gray-900 to-black">
       {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5" />
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-orange-600/5 to-red-600/5" />
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-900/10 via-transparent to-transparent" />
 
-      <div className="relative z-10 px-6 w-full max-w-lg text-center">
-        <h1 className="mb-8 text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-          Drival
-        </h1>
-
-        <StatusIndicator connectionStatus={webRTC.connectionStatus} />
-
-        {webRTC.connectionStatus.isConnected && (
-          <QuotaIndicator quotaStatus={quota.quotaStatus} />
+      {/* Top Navigation */}
+      <div className="relative z-10 flex justify-between items-center p-4">
+        {/* Language Selector - Top Left */}
+        {!webRTC.connectionStatus.isConnected && !paramError && (
+          <LanguageSelector
+            languages={languages.languages}
+            selectedLanguage={languages.selectedLanguage}
+            onLanguageChange={languages.setSelectedLanguage}
+          />
         )}
+        {webRTC.connectionStatus.isConnected && <div></div>}
+        
+        {/* Mood + Info - Top Right */}
+        <div className="flex items-center gap-3">
+          <MoodEmoji
+            currentMood={mood.currentMood}
+            getMoodEmoji={mood.getMoodEmoji}
+          />
+          <InfoPanel />
+        </div>
+      </div>
 
-        <MoodDisplay
-          currentMood={mood.currentMood}
-          moodConfidence={mood.moodConfidence}
-          getMoodEmoji={mood.getMoodEmoji}
-          getMoodColor={mood.getMoodColor}
-        />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col justify-center items-center px-6">
 
         {/* URL Parameter Error */}
         {paramError && (
@@ -183,14 +189,6 @@ export default function App() {
               ❌ {paramError}
             </div>
           </div>
-        )}
-
-        {!webRTC.connectionStatus.isConnected && !paramError && (
-          <LanguageSelector
-            languages={languages.languages}
-            selectedLanguage={languages.selectedLanguage}
-            onLanguageChange={languages.setSelectedLanguage}
-          />
         )}
 
         <VoiceControls
@@ -226,10 +224,16 @@ export default function App() {
           </div>
         )}
 
-        <InfoPanel />
-
-        <audio ref={audioRef} autoPlay className="hidden" />
+        {webRTC.connectionStatus.isConnected && (
+          <div className="mt-4 p-3 bg-white/5 rounded-lg">
+            <div className="text-xs text-gray-400 text-center">
+              Session Time: {Math.floor(quota.quotaStatus.remaining / 60)}:{(quota.quotaStatus.remaining % 60).toString().padStart(2, '0')}
+            </div>
+          </div>
+        )}
       </div>
+
+      <audio ref={audioRef} autoPlay className="hidden" />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import {
   MoodAssessment,
   UserSession,
   MOOD_CHARACTERISTICS,
-} from "../types/mood.js";
+} from "../types/mood";
 
 /**
  * In-memory session storage for mood data

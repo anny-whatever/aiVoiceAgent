@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-import { validateApiKey } from "./middleware/sessionMiddleware.js";
-import toolsRoutes from "./routes/tools.js";
+import { validateApiKey } from "./middleware/sessionMiddleware";
+import toolsRoutes from "./routes/tools";
 
 dotenv.config();
 

@@ -1,7 +1,7 @@
 import WebSocket, { WebSocketServer } from 'ws';
-import { usageService } from './usageService.js';
-import { tokenManager } from './tokenManager.js';
-import { QuotaWarning } from '../types/usage.js';
+import { usageService } from './usageService';
+import { tokenManager } from './tokenManager';
+import { QuotaWarning } from '../types/usage';
 
 interface MonitoredSession {
   sessionId: string;

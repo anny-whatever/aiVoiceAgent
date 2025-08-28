@@ -6,10 +6,10 @@ import { dirname } from "path";
 import { ENV } from "./config/env";
 import sessionRouter from "./routes/session";
 import toolsRouter from "./routes/tools";
-import heartbeatRouter from "./routes/heartbeat.js";
-import { usageService } from "./lib/usageService.js";
-import { websocketMonitor } from "./lib/websocketMonitor.js";
-import { validateApiKey } from "./middleware/sessionMiddleware.js";
+import heartbeatRouter from "./routes/heartbeat";
+import { usageService } from "./lib/usageService";
+import { websocketMonitor } from "./lib/websocketMonitor";
+import { validateApiKey } from "./middleware/sessionMiddleware";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

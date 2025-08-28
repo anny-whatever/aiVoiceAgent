@@ -1,6 +1,6 @@
-import { Trip, ITrip } from '../models/Trip.js';
-import { TimeUtils, DateRange } from '../utils/timeUtils.js';
-import { mongoConnection } from '../database/mongodb.js';
+import { Trip, ITrip } from '../models/Trip';
+import { TimeUtils, DateRange } from '../utils/timeUtils';
+import { mongoConnection } from '../database/mongodb';
 
 export interface TripQueryOptions {
   status?: string;

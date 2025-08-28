@@ -1,5 +1,5 @@
-import { usageDB } from './usageDatabase.js';
-import { tokenManager } from './tokenManager.js';
+import { usageDB } from './usageDatabase';
+import { tokenManager } from './tokenManager';
 import {
   UserUsage,
   UserLimits,
@@ -11,7 +11,7 @@ import {
   DEFAULT_LIMITS,
   TOKEN_CONFIG,
   SESSION_TIME_CONFIG,
-} from '../types/usage.js';
+} from '../types/usage';
 
 class UsageService {
   private cleanupInterval: NodeJS.Timeout | null = null;

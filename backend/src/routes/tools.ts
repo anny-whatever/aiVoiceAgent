@@ -1,25 +1,25 @@
 import { Router } from "express";
-import { UserService } from '../services/userService.js';
-import { VehicleService } from '../services/vehicleService.js';
-import { TripService } from '../services/tripService.js';
-import { SearchService } from '../services/searchService.js';
-import { mongoConnection } from '../database/mongodb.js';
+import { UserService } from '../services/userService';
+import { VehicleService } from '../services/vehicleService';
+import { TripService } from '../services/tripService';
+import { SearchService } from '../services/searchService';
+import { mongoConnection } from '../database/mongodb';
 import {
   assessUserMood,
   getSessionData,
   generateMoodInstructions,
 } from "../lib/moodSystem";
-import { UserMood } from "../types/mood.js";
+import { UserMood } from "../types/mood";
 import {
   DrivingDataQueryType,
   UserInfoQueryType,
   VehicleInfoQueryType,
   mapQueryToType,
   extractLimitFromQuery
-} from "../types/toolEnums.js";
+} from "../types/toolEnums";
 
-import { validateApiKey, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
-import { extractFirebaseUid, AuthenticatedRequest } from "../middleware/authMiddleware.js";
+import { validateApiKey, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware";
+import { extractFirebaseUid, AuthenticatedRequest } from "../middleware/authMiddleware";
 
 const router = Router();
 

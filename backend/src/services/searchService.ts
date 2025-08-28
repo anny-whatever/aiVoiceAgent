@@ -1,4 +1,4 @@
-import { ENV } from '../config/env.js';
+import { ENV } from '../config/env';
 
 interface SerpApiResponse {
   search_metadata: {

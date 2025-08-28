@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { usageService } from '../lib/usageService.js';
-import { tokenManager } from '../lib/tokenManager.js';
-import { ENV } from '../config/env.js';
+import { usageService } from '../lib/usageService';
+import { tokenManager } from '../lib/tokenManager';
+import { ENV } from '../config/env';
 
 /**
  * Enhanced session creation middleware with usage validation

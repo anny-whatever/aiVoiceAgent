@@ -1,5 +1,5 @@
-import { Vehicle, IVehicle } from '../models/Vehicle.js';
-import { mongoConnection } from '../database/mongodb.js';
+import { Vehicle, IVehicle } from '../models/Vehicle';
+import { mongoConnection } from '../database/mongodb';
 
 export interface VehicleQueryOptions {
   is_active?: boolean;

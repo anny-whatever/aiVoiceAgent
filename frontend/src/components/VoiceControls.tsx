@@ -16,48 +16,55 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({
 }) => {
   const { isConnected } = connectionStatus;
 
-  const buttonBaseClass =
-    "relative overflow-hidden py-4 px-8 w-full font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none";
-
-  if (isConnected) {
-    return (
-      <button
-        onClick={onStop}
-        disabled={disabled}
-        className={`${buttonBaseClass} bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-500/50 shadow-red-500/25`}
-      >
-        <span className="relative z-10 flex items-center justify-center gap-2">
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
-              clipRule="evenodd"
-            />
-          </svg>
-          End Session
-        </span>
-        <div className="absolute inset-0 bg-gradient-to-r from-red-700 to-red-800 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100"></div>
-      </button>
-    );
-  }
-
   return (
-    <button
-      onClick={onStart}
-      disabled={disabled}
-      className={`${buttonBaseClass} bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500/50 shadow-blue-500/25`}
-    >
-      <span className="relative z-10 flex items-center justify-center gap-2">
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fillRule="evenodd"
-            d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
-            clipRule="evenodd"
-          />
-        </svg>
-        Start Voice Chat
-      </span>
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-blue-800 transform scale-x-0 origin-left transition-transform duration-300 group-hover:scale-x-100"></div>
-    </button>
+    <div className="flex justify-center">
+      {!isConnected ? (
+        <button
+          onClick={onStart}
+          disabled={disabled}
+          className="w-32 h-32 bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-full shadow-2xl hover:shadow-orange-500/25 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center backdrop-blur-sm border-2 border-orange-400/30"
+        >
+          <div className="flex flex-col items-center gap-1">
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+              />
+            </svg>
+            <span className="text-sm">START</span>
+          </div>
+        </button>
+      ) : (
+        <button
+          onClick={onStop}
+          disabled={disabled}
+          className="w-32 h-32 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold rounded-full shadow-2xl hover:shadow-red-500/25 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center backdrop-blur-sm border-2 border-red-400/30"
+        >
+          <div className="flex flex-col items-center gap-1">
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            <span className="text-sm">STOP</span>
+          </div>
+        </button>
+      )}
+    </div>
   );
 };

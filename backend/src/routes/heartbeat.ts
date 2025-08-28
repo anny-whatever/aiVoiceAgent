@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { usageService } from '../lib/usageService.js';
-import { tokenManager } from '../lib/tokenManager.js';
-import { websocketMonitor } from '../lib/websocketMonitor.js';
-import { HeartbeatData } from '../types/usage.js';
+import { usageService } from '../lib/usageService';
+import { tokenManager } from '../lib/tokenManager';
+import { websocketMonitor } from '../lib/websocketMonitor';
+import { HeartbeatData } from '../types/usage';
 
 const router = Router();
 

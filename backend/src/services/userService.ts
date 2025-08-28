@@ -1,5 +1,5 @@
-import { User, IUser } from '../models/User.js';
-import { mongoConnection } from '../database/mongodb.js';
+import { User, IUser } from '../models/User';
+import { mongoConnection } from '../database/mongodb';
 
 export class UserService {
   /**
