@@ -11,6 +11,6 @@ export default defineConfig({
   preview: {
     port: 5173,
     host: '0.0.0.0',
-    allowedHosts: ['test.complianceone.ai']
+  allowedHosts: ['test.complianceone.ai', 'newtest.complianceone.ai']
   }
 });
