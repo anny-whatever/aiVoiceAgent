@@ -74,7 +74,7 @@ router.post("/tools/get_driving_data",
     try {
       console.log("🔧 Tool called:", req.body);
       
-      const { category, query, timeRange, startDate, endDate } = req.body || {};
+      const { query, timeRange, startDate, endDate } = req.body || {};
       const userId = req.firebase_uid; // Get from middleware
       
       if (!userId) {
@@ -84,14 +84,13 @@ router.post("/tools/get_driving_data",
         });
       }
       
-      if (!category || !query) {
+      if (!query) {
         console.error("❌ Missing required parameters:", {
-          category,
           query,
           body: req.body,
         });
         return res.status(400).json({
-          error: "Category and query parameters are required",
+          error: "Query parameter is required",
           received: req.body,
         });
       }
@@ -130,20 +129,38 @@ router.post("/tools/get_driving_data",
         content = `Found ${trips.length} recent trip${trips.length !== 1 ? 's' : ''} for the user.`;
       }
       
-      // Format trip data for response
+      // Format trip data for response with new structure
       const formattedTrips = trips.map(trip => ({
         id: trip._id,
+        sid: trip.sid,
         startAddress: trip.startAddress,
         endAddress: trip.endAddress,
+        startLat: trip.startLat,
+        startLong: trip.startLong,
+        endLat: trip.endLat,
+        endLong: trip.endLong,
         distance: trip.distance,
+        totalDistance: trip.totalDistance,
         duration_seconds: trip.duration_seconds,
         start_time: trip.start_time,
         end_time: trip.end_time,
+        max_speed_kmh: trip.max_speed_kmh,
+        average_speed_kmh: trip.average_speed_kmh,
         eco_score: trip.eco_score,
         safety_violations: trip.safety_violations,
+        harsh_braking_count: trip.harsh_braking_count,
+        harsh_acceleration_count: trip.harsh_acceleration_count,
+        sharp_turn_count: trip.sharp_turn_count,
+        speeding_violations: trip.speeding_violations,
+        is_first_drive_today: trip.is_first_drive_today,
+        is_weekend_drive: trip.is_weekend_drive,
+        is_night_drive: trip.is_night_drive,
+        is_morning_commute: trip.is_morning_commute,
         coins: trip.coins,
         rewardPoints: trip.rewardPoints,
-        status: trip.status
+        pointsPerKm: trip.pointsPerKm,
+        status: trip.status,
+        bonus_multipliers_applied: trip.bonus_multipliers_applied
       }));
       
       return res.json({
@@ -152,7 +169,6 @@ router.post("/tools/get_driving_data",
         data: formattedTrips,
         metadata: {
           userId,
-          category,
           query,
           timestamp: new Date().toISOString(),
           totalTrips: trips.length

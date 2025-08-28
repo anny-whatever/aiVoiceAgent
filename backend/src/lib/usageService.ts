@@ -35,97 +35,28 @@ class UsageService {
   }
 
   /**
-   * Validates if a user can start a new session
+   * Validates if a user can start a new session - ALWAYS ALLOWS with 180 minute limit
    */
   async validateSessionCreation(userId: string, ipAddress: string): Promise<UsageValidationResult> {
-    const limits = await usageDB.getUserLimits(userId);
-    
-    if (!limits.enabled) {
-      return {
-        allowed: false,
-        reason: 'Usage limits disabled for user',
-        quotaRemaining: 0,
-        sessionTimeRemaining: 0,
-      };
-    }
-
-    // Check concurrent sessions and clean up stale ones
+    // Clean up stale sessions for housekeeping
     const activeSessions = await usageDB.getUserActiveSessions(userId);
-    console.log(`📊 Found ${activeSessions.length} active sessions for user ${userId}`);
-    
-    // Clean up sessions that haven't sent heartbeats for more than 5 minutes (more aggressive)
     const staleThreshold = Date.now() - (5 * 60 * 1000); // 5 minutes ago
     const staleSessions = activeSessions.filter(session => {
       const lastHeartbeat = new Date(session.lastHeartbeat).getTime();
-      const isStale = lastHeartbeat < staleThreshold;
-      if (isStale) {
-        const minutesStale = Math.floor((Date.now() - lastHeartbeat) / (60 * 1000));
-        console.log(`🕐 Session ${session.sessionId} is stale (${minutesStale} minutes old)`);
-      }
-      return isStale;
+      return lastHeartbeat < staleThreshold;
     });
-    
-    console.log(`🧹 Found ${staleSessions.length} stale sessions to clean up`);
     
     // Remove stale sessions
     for (const staleSession of staleSessions) {
       await usageDB.deleteActiveSession(staleSession.sessionId);
-      console.log(`✅ Cleaned up stale session: ${staleSession.sessionId}`);
-    }
-    
-    // Get updated active sessions count after cleanup
-    const currentActiveSessions = activeSessions.filter(session => {
-      const lastHeartbeat = new Date(session.lastHeartbeat).getTime();
-      return lastHeartbeat >= staleThreshold;
-    });
-    
-    console.log(`📈 Active sessions after cleanup: ${currentActiveSessions.length}/${limits.maxConcurrentSessions}`);
-    
-    if (currentActiveSessions.length >= limits.maxConcurrentSessions) {
-      return {
-        allowed: false,
-        reason: `Maximum concurrent sessions (${limits.maxConcurrentSessions}) reached`,
-        quotaRemaining: 0,
-        sessionTimeRemaining: 0,
-      };
     }
 
-    // Get or initialize session time tracking
-    const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM format
-    let monthlyUsage = await usageDB.getUserUsage(userId, currentMonth);
-    
-    // Initialize usage record if it doesn't exist
-    if (!monthlyUsage) {
-      monthlyUsage = {
-        userId,
-        month: currentMonth,
-        totalSeconds: 0,
-        sessionTimeRemaining: SESSION_TIME_CONFIG.INITIAL_SESSION_TIME,
-      };
-      await usageDB.updateUserUsage(monthlyUsage);
-    }
-
-    // Check if we have any session time remaining
-    const sessionTimeRemaining = monthlyUsage.sessionTimeRemaining || 0;
-    
-    if (sessionTimeRemaining < SESSION_TIME_CONFIG.MIN_SESSION_TIME) {
-      return {
-        allowed: false,
-        reason: 'No session time remaining',
-        quotaRemaining: 0,
-        sessionTimeRemaining: 0,
-      };
-    }
-
-    // Cap session time to maximum allowed
-    const actualSessionTime = Math.min(sessionTimeRemaining, SESSION_TIME_CONFIG.MAX_SESSION_TIME);
-    const warningThreshold = actualSessionTime <= TOKEN_CONFIG.WARNING_THRESHOLD_SECONDS;
-
+    // Always allow session creation with full 180-minute allocation
     return {
       allowed: true,
-      quotaRemaining: actualSessionTime,
-      sessionTimeRemaining: actualSessionTime,
-      warningThreshold,
+      quotaRemaining: SESSION_TIME_CONFIG.INITIAL_SESSION_TIME,
+      sessionTimeRemaining: SESSION_TIME_CONFIG.INITIAL_SESSION_TIME,
+      warningThreshold: false,
     };
   }
 

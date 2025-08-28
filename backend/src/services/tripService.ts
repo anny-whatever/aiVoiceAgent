@@ -140,7 +140,7 @@ export class TripService {
   }
 
   /**
-   * Get trips by category
+   * Get trips by status
    */
   static async getTripsByStatus(firebase_uid: string, status: string, options: TripQueryOptions = {}): Promise<ITrip[]> {
     await this.ensureConnection();
@@ -261,7 +261,7 @@ export class TripService {
   }
 
   /**
-   * Search trips by text (purpose, notes, locations)
+   * Search trips by text (addresses, session ID)
    */
   static async searchTrips(firebase_uid: string, searchText: string, options: TripQueryOptions = {}): Promise<ITrip[]> {
     await this.ensureConnection();
@@ -269,7 +269,7 @@ export class TripService {
     const {
       limit = 50,
       skip = 0,
-      sortBy = 'date',
+      sortBy = 'start_time',
       sortOrder = 'desc'
     } = options;
 
@@ -278,10 +278,9 @@ export class TripService {
     const query = {
       firebase_uid,
       $or: [
-        { purpose: searchRegex },
-        { notes: searchRegex },
-        { startLocation: searchRegex },
-        { endLocation: searchRegex }
+        { startAddress: searchRegex },
+        { endAddress: searchRegex },
+        { sid: searchRegex }
       ]
     };
 

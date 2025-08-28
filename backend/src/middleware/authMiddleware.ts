@@ -73,44 +73,7 @@ export const ensureResourceOwnership = (req: AuthenticatedRequest, res: Response
   next();
 };
 
-/**
- * Rate limiting middleware for API endpoints
- */
-const requestCounts = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per minute
-
-export const rateLimitByUser = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const firebase_uid = req.firebase_uid;
-  
-  if (!firebase_uid) {
-    return next(); // Let other middleware handle missing auth
-  }
-  
-  const now = Date.now();
-  const userKey = `rate_limit_${firebase_uid}`;
-  const userRequests = requestCounts.get(userKey);
-  
-  if (!userRequests || now > userRequests.resetTime) {
-    // Reset or initialize counter
-    requestCounts.set(userKey, {
-      count: 1,
-      resetTime: now + RATE_LIMIT_WINDOW
-    });
-    return next();
-  }
-  
-  if (userRequests.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return res.status(429).json({
-      error: 'Rate limit exceeded',
-      message: `Too many requests. Limit: ${RATE_LIMIT_MAX_REQUESTS} requests per minute`,
-      retryAfter: Math.ceil((userRequests.resetTime - now) / 1000)
-    });
-  }
-  
-  userRequests.count++;
-  next();
-};
+// Rate limiting middleware removed
 
 /**
  * Input validation middleware
@@ -122,7 +85,7 @@ export const validateTripData = (req: Request, res: Response, next: NextFunction
     return next(); // Optional validation
   }
   
-  const requiredFields = ['startLocation', 'endLocation', 'date', 'category'];
+  const requiredFields = ['startLat', 'startLong', 'startAddress', 'endLat', 'endLong', 'endAddress', 'start_time'];
   const missingFields = requiredFields.filter(field => !tripData[field]);
   
   if (missingFields.length > 0) {
@@ -133,27 +96,58 @@ export const validateTripData = (req: Request, res: Response, next: NextFunction
     });
   }
   
-  // Validate category
-  const validCategories = [
-    'work_commute', 'errands_shopping', 'social_visits', 
-    'leisure_recreation', 'medical_appointments', 'other'
-  ];
-  
-  if (!validCategories.includes(tripData.category)) {
+  // Validate coordinates
+  if (typeof tripData.startLat !== 'number' || typeof tripData.startLong !== 'number' ||
+      typeof tripData.endLat !== 'number' || typeof tripData.endLong !== 'number') {
     return res.status(400).json({
-      error: 'Invalid category',
-      message: `Category must be one of: ${validCategories.join(', ')}`,
-      provided: tripData.category
+      error: 'Invalid coordinates',
+      message: 'Latitude and longitude must be valid numbers'
     });
   }
   
-  // Validate date format
-  const date = new Date(tripData.date);
-  if (isNaN(date.getTime())) {
+  // Validate coordinate ranges
+  if (Math.abs(tripData.startLat) > 90 || Math.abs(tripData.endLat) > 90) {
     return res.status(400).json({
-      error: 'Invalid date format',
-      message: 'Date must be a valid ISO date string',
-      provided: tripData.date
+      error: 'Invalid latitude',
+      message: 'Latitude must be between -90 and 90 degrees'
+    });
+  }
+  
+  if (Math.abs(tripData.startLong) > 180 || Math.abs(tripData.endLong) > 180) {
+    return res.status(400).json({
+      error: 'Invalid longitude',
+      message: 'Longitude must be between -180 and 180 degrees'
+    });
+  }
+  
+  // Validate start_time format
+  const startTime = new Date(tripData.start_time);
+  if (isNaN(startTime.getTime())) {
+    return res.status(400).json({
+      error: 'Invalid start_time format',
+      message: 'start_time must be a valid ISO date string',
+      provided: tripData.start_time
+    });
+  }
+  
+  // Validate optional boolean fields if provided
+  const booleanFields = ['is_first_drive_today', 'is_weekend_drive', 'is_night_drive', 'is_morning_commute'];
+  for (const field of booleanFields) {
+    if (tripData[field] !== undefined && typeof tripData[field] !== 'boolean') {
+      return res.status(400).json({
+        error: 'Invalid boolean field',
+        message: `${field} must be a boolean value`,
+        provided: tripData[field]
+      });
+    }
+  }
+  
+  // Validate status if provided
+  if (tripData.status && !['pending', 'in_progress', 'completed', 'cancelled'].includes(tripData.status)) {
+    return res.status(400).json({
+      error: 'Invalid status',
+      message: 'Status must be one of: pending, in_progress, completed, cancelled',
+      provided: tripData.status
     });
   }
   

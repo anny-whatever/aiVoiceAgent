@@ -245,6 +245,76 @@ LANGUAGE-SPECIFIC GREETING EXAMPLES:
 USE THE SELECTED LANGUAGE: Start conversation in ${languageNativeName} immediately.
 DO NOT ask about "how the day is going" - ask specifically about FEELINGS and MOOD in ${languageNativeName}.
 
+CRITICAL FUNCTION RESPONSE HANDLING:
+When you call any function (get_driving_data, get_user_info, get_vehicle_info), you MUST:
+1. ONLY use the actual data returned by the function
+2. NEVER make up, invent, or hallucinate any information
+3. If the function returns trip data, use EXACTLY that data - addresses, distances, times, scores, etc.
+4. If the function returns an error or no data, say so clearly
+5. NEVER add fictional details like "park strolls" or "motor visits" that aren't in the actual data
+6. Present the real data in a conversational way but keep all facts accurate
+
+SPECIFIC TRIP DATA HANDLING:
+The get_driving_data function returns a JSON response with this EXACT structure:
+{
+  "success": boolean,
+  "content": "string description",
+  "data": [
+    {
+      "id": "string",
+      "sid": "string",
+      "startAddress": "exact address like '10 Test Street, Mumbai'",
+      "endAddress": "exact address like '575 Destination Road, Mumbai'",
+      "startLat": number,
+      "startLong": number,
+      "endLat": number,
+      "endLong": number,
+      "distance": number (in km),
+      "totalDistance": number,
+      "duration_seconds": number,
+      "start_time": "ISO timestamp",
+      "end_time": "ISO timestamp",
+      "max_speed_kmh": number,
+      "average_speed_kmh": number,
+      "eco_score": number,
+      "safety_violations": number,
+      "harsh_braking_count": number,
+      "harsh_acceleration_count": number,
+      "sharp_turn_count": number,
+      "speeding_violations": number,
+      "is_first_drive_today": boolean,
+      "is_weekend_drive": boolean,
+      "is_night_drive": boolean,
+      "is_morning_commute": boolean,
+      "coins": number,
+      "rewardPoints": number,
+      "pointsPerKm": number,
+      "status": "completed"
+    }
+  ],
+  "metadata": {
+    "userId": "string",
+    "query": "user's original query",
+    "timestamp": "ISO timestamp",
+    "totalTrips": number
+  }
+}
+
+When presenting trip data, use ONLY the actual values from these fields:
+- Use the EXACT startAddress and endAddress (e.g., "10 Test Street, Mumbai" to "575 Destination Road, Mumbai")
+- Use the actual distance and totalDistance in kilometers (e.g., 28.4 km)
+- Convert duration_seconds to minutes/hours (e.g., 2460 seconds = 41 minutes)
+- Use the actual speed data: max_speed_kmh and average_speed_kmh
+- Use the actual eco_score, safety_violations, and detailed safety metrics (harsh_braking_count, harsh_acceleration_count, sharp_turn_count, speeding_violations)
+- Reference the boolean flags for trip context: is_first_drive_today, is_weekend_drive, is_night_drive, is_morning_commute
+- Use the actual coins, rewardPoints, and pointsPerKm values
+- Use the actual start_time and end_time timestamps
+- Reference the totalTrips from metadata for summary
+
+ABSOLUTE RULE: NEVER replace these real addresses with fictional locations like "park", "motor visit", or any other made-up places. Use the EXACT address strings returned by the API.
+
+EXAMPLE: If get_driving_data returns trips from "10 Test Street" to "575 Destination Road", say exactly that. Do NOT say "park" or "motor visit" or any other made-up locations.
+
 You MUST use the available functions when appropriate. Mood can change during conversations - always stay alert for emotional content.`,
           tools: [
             {
@@ -316,46 +386,20 @@ You MUST use the available functions when appropriate. Mood can change during co
               type: "function",
               name: "get_driving_data",
               description:
-                "Get complete trip data when user asks about their trips, routes, driving history, last trip, recent trips, or trips on specific dates.",
+                "CRITICAL: This function returns REAL trip data from the user's driving history. You MUST use ONLY the exact data returned - never invent or hallucinate information. The response contains actual trips with real addresses, distances, times, and scores. Present this data conversationally but keep ALL facts accurate.",
               parameters: {
                 type: "object",
                 properties: {
                   userId: {
                     type: "string",
-                    description: "The firebase_uid of the user whose data to retrieve",
-                  },
-                  category: {
-                    type: "string",
-                    enum: [
-                      "work_commute",
-                      "errands_shopping",
-                      "social_visits",
-                      "leisure_recreation",
-                      "medical_appointments",
-                      "other",
-                      "general",
-                    ],
-                    description: "Category of trip data to retrieve",
+                    description: "The firebase_uid of the user whose trip data to retrieve",
                   },
                   query: {
                     type: "string",
-                    description: "Description of what the user is asking about (supports: 'last trip', 'last N trips', 'last week trips', specific dates)",
-                  },
-                  timeRange: {
-                    type: "string",
-                    enum: ["latest", "today", "yesterday", "last_week", "last_month", "all"],
-                    description: "Time range for trip data (optional)",
-                  },
-                  startDate: {
-                    type: "string",
-                    description: "Start date for custom date range (YYYY-MM-DD format, optional)",
-                  },
-                  endDate: {
-                    type: "string",
-                    description: "End date for custom date range (YYYY-MM-DD format, optional)",
+                    description: "Exact description of what the user is asking about (e.g., 'last 3 trips', 'recent trips', 'driving history', 'last trip', 'trips today', 'trips this week')",
                   },
                 },
-                required: ["userId", "category", "query"],
+                required: ["userId", "query"],
               },
             },
           ],

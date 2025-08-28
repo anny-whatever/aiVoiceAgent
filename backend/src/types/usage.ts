@@ -53,21 +53,21 @@ export interface QuotaWarning {
 
 // Default limits
 export const DEFAULT_LIMITS: Omit<UserLimits, 'userId'> = {
-  sessionLimitSeconds: 15 * 60, // 15 minutes per session
+  sessionLimitSeconds: 180 * 60, // 180 minutes per session
   maxConcurrentSessions: 3,
   enabled: true,
 };
 
 // Session time management constants
 export const SESSION_TIME_CONFIG = {
-  INITIAL_SESSION_TIME: 15 * 60, // 15 minutes initial allocation
+  INITIAL_SESSION_TIME: 180 * 60, // 180 minutes initial allocation
   MIN_SESSION_TIME: 30, // Minimum 30 seconds for a session
-  MAX_SESSION_TIME: 60 * 60, // Maximum 1 hour per session
+  MAX_SESSION_TIME: 180 * 60, // Maximum 180 minutes per session
 };
 
 // Token configuration
 export const TOKEN_CONFIG = {
-  EXPIRY_MINUTES: 10, // Short-lived tokens
+  EXPIRY_MINUTES: 180, // Short-lived tokens
   RENEWAL_THRESHOLD_MINUTES: 2, // Renew when 2 minutes left
   HEARTBEAT_INTERVAL_SECONDS: 60, // Mandatory heartbeat every 60s
   WARNING_THRESHOLD_SECONDS: 5 * 60, // Warn when 5 minutes left

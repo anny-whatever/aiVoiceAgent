@@ -27,17 +27,7 @@ router.post("/session", validateApiKey, async (req, res) => {
       });
     }
 
-    // Validate session creation
-    const validation = await usageService.validateSessionCreation(userId, ipAddress);
-    
-    if (!validation.allowed) {
-      return res.status(429).json({
-        error: 'Session creation denied',
-        reason: validation.reason,
-        quotaRemaining: validation.quotaRemaining,
-        sessionTimeRemaining: validation.sessionTimeRemaining,
-      });
-    }
+    // Rate limiting removed - allow all session creation
 
     // User validation removed - getUserData function not available
     const userData = { 
@@ -59,7 +49,7 @@ router.post("/session", validateApiKey, async (req, res) => {
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: "alloy",
         tools: [],
-        instructions: `${userData.instructions}\n\nStart the conversation by asking the user how they're feeling today to assess their mood. Use the assess_user_mood tool to analyze their response and adapt your tone accordingly.\n\nYour session has a time limit of ${Math.floor(validation.sessionTimeRemaining / 60)} minutes. If you receive an END_SESSION action from any tool call, you must immediately end the conversation politely.`,
+        instructions: `${userData.instructions}\n\nStart the conversation by asking the user how they're feeling today to assess their mood. Use the assess_user_mood tool to analyze their response and adapt your tone accordingly.\n\nYour session has a time limit of 60 minutes. If you receive an END_SESSION action from any tool call, you must immediately end the conversation politely.`,
       }),
     });
 
@@ -96,8 +86,8 @@ router.post("/session", validateApiKey, async (req, res) => {
       sessionId: payload.id,
       sessionToken: sessionResult.token,
       quotaRemaining: sessionResult.quotaRemaining,
-      sessionTimeLimit: validation.sessionTimeRemaining, // Use initial session time as total limit
-      warningThreshold: validation.warningThreshold,
+      sessionTimeLimit: 10800, // Default 180 minutes (3 hours) session limit
+      warningThreshold: false,
     });
   } catch (e: any) {
     console.error("Session creation error:", e);
