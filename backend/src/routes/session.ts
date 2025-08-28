@@ -1,6 +1,6 @@
 import { Router } from "express";
 import fetch from "node-fetch";
-import { ENV } from "../config/env";
+import { ENV } from "../config/env.js";
 import { usageService } from "../lib/usageService.js";
 import { validateApiKey, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware.js";
 

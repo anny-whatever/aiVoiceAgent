@@ -3,13 +3,13 @@ import { UserService } from '../services/userService.js';
 import { VehicleService } from '../services/vehicleService.js';
 import { TripService } from '../services/tripService.js';
 import { SearchService } from '../services/searchService.js';
-import { mongoConnection } from '../database/mongodb';
+import { mongoConnection } from '../database/mongodb.js';
 import {
   assessUserMood,
   getSessionData,
   generateMoodInstructions,
 } from "../lib/moodSystem";
-import { UserMood } from "../types/mood";
+import { UserMood } from "../types/mood.js";
 import {
   DrivingDataQueryType,
   UserInfoQueryType,
