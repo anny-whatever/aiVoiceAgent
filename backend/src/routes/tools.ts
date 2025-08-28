@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { findRelevantTripData, getUsers } from "../lib/drivingData";
+import { findRelevantTripData } from "../lib/drivingData";
+import { DrivingDataService } from '../services/drivingDataService';
+import { mongoConnection } from '../database/mongodb';
 import {
   assessUserMood,
   getSessionData,
@@ -20,40 +22,67 @@ router.use(addSessionHeaders);
 // User listing endpoint removed for security - users should not be exposed
 
 /** Tool endpoint invoked by the browser when model requests get_driving_data */
-router.post("/tools/get_driving_data", validateApiKey, (req, res) => {
-  console.log("🔧 Tool called:", req.body);
+router.post("/tools/get_driving_data", 
+  validateApiKey,
+  async (req, res) => {
+    try {
+      console.log("🔧 Tool called:", req.body);
+      
+      const { userId, category, query, timeRange, startDate, endDate } = req.body || {};
+      
+      if (!userId || !category || !query) {
+        console.error("❌ Missing required parameters:", {
+          userId,
+          category,
+          query,
+          body: req.body,
+        });
+        return res.status(400).json({
+          error: "UserId, category and query parameters are required",
+          received: req.body,
+          validCategories: [
+            'work_commute', 'errands_shopping', 'social_visits', 
+            'leisure_recreation', 'medical_appointments', 'other', 'general'
+          ]
+        });
+      }
 
-  const { userId, category, query } = req.body || {};
-  if (!userId || !category || !query) {
-    console.error("❌ Missing required parameters:", {
-      userId,
-      category,
-      query,
-      body: req.body,
-    });
-    return res.status(400).json({
-      error: "UserId, category and query parameters are required",
-      received: req.body,
-    });
+      // Ensure MongoDB connection
+       await mongoConnection.ensureConnection();
+       
+       // Use enhanced service with MongoDB support
+       const result = await DrivingDataService.findRelevantTripData(
+         userId, 
+         category, 
+         query
+       );
+      
+      console.log(
+        "✅ Complete data returned for category:",
+        category,
+        "| First 100 chars:",
+        result.substring(0, 100) + "..."
+      );
+      
+      return res.json({ 
+        success: true,
+        content: result,
+        metadata: {
+          userId,
+          category,
+          query,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (e: any) {
+      console.error("❌ Tool execution error:", e);
+      return res.status(500).json({
+        error: "Failed to retrieve trip data",
+        details: e?.message || "Unknown error",
+      });
+    }
   }
-
-  try {
-    const content = findRelevantTripData(userId, category, query);
-    console.log(
-      "✅ Complete data returned for category:",
-      category,
-      "| First 100 chars:",
-      content.substring(0, 100) + "..."
-    );
-    return res.json({ content });
-  } catch (e: any) {
-    console.error("❌ Tool execution error:", e);
-    return res.status(500).json({
-      error: "Failed to retrieve trip data",
-      details: e?.message || "Unknown error",
-    });
-  }
-});
+);
 
 /** Mood assessment tool endpoint - called by AI agent */
 router.post("/tools/assess_user_mood", validateApiKey, async (req, res) => {
@@ -131,100 +160,6 @@ router.get("/session/:userId/:sessionId/mood", validateApiKey, (req, res) => {
   }
 });
 
-/** Enhanced mood system test with full spectrum */
-router.get("/tools/test", validateApiKey, async (_req, res) => {
-  try {
-    const test = findRelevantTripData("user1", "work_commute", "office");
 
-    // Test the full 11-mood spectrum with tone analysis
-    const moodTests = {
-      ecstatic: await assessUserMood(
-        "user1",
-        "OMG this is AMAZING!! I'm so thrilled!!",
-        "test-1"
-      ),
-      excited: await assessUserMood(
-        "user1",
-        "I'm pumped for this drive!",
-        "test-2"
-      ),
-      happy: await assessUserMood(
-        "user1",
-        "I'm feeling wonderful today!",
-        "test-3"
-      ),
-      content: await assessUserMood(
-        "user1",
-        "I'm good, tell me about my trips",
-        "test-4"
-      ),
-      neutral: await assessUserMood(
-        "user1",
-        "Just need directions to downtown",
-        "test-5"
-      ),
-      calm: await assessUserMood(
-        "user1",
-        "I'm feeling peaceful and relaxed",
-        "test-6"
-      ),
-      tired: await assessUserMood(
-        "user1",
-        "Ugh I'm so exhausted from work",
-        "test-7"
-      ),
-      sad: await assessUserMood(
-        "user1",
-        "I'm feeling pretty down today",
-        "test-8"
-      ),
-      frustrated: await assessUserMood(
-        "user1",
-        "This traffic is so annoying",
-        "test-9"
-      ),
-      stressed: await assessUserMood(
-        "user1",
-        "I'm really anxious about being late",
-        "test-10"
-      ),
-      angry: await assessUserMood(
-        "user1",
-        "I'm furious about this situation!",
-        "test-11"
-      ),
-
-      // Test subtle tone detection
-      subtle_frustrated: await assessUserMood(
-        "user1",
-        "Whatever, just tell me the route",
-        "test-12"
-      ),
-      subtle_tired: await assessUserMood(
-        "user1",
-        "Sure... I guess that works",
-        "test-13"
-      ),
-      mood_change: await assessUserMood(
-        "user1",
-        "Actually this is getting really frustrating",
-        "test-14",
-        UserMood.CONTENT
-      ),
-    };
-
-    res.json({
-      status: "ok",
-      tripDataTest: test.substring(0, 100) + "...",
-      moodSystemVersion: "2.0 - Full Spectrum with Tone Analysis",
-      totalMoods: 11,
-      moodTests,
-    });
-  } catch (e: any) {
-    res
-      .status(500)
-      .json({ status: "error", error: e?.message || "Unknown error" });
-  }
-});
 
 export default router;

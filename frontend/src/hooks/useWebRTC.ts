@@ -257,8 +257,7 @@ You MUST use the available functions when appropriate. Mood can change during co
                 properties: {
                   userId: {
                     type: "string",
-                    description: "The ID of the user whose mood to assess",
-                    enum: ["firebase_user_001_john_doe", "firebase_user_002_jane_smith"],
+                    description: "The firebase_uid of the user whose mood to assess",
                   },
                   userResponse: {
                     type: "string",
@@ -283,8 +282,7 @@ You MUST use the available functions when appropriate. Mood can change during co
                 properties: {
                   userId: {
                     type: "string",
-                    description: "The ID of the user whose data to retrieve",
-                    enum: ["firebase_user_001_john_doe", "firebase_user_002_jane_smith"],
+                    description: "The firebase_uid of the user whose data to retrieve",
                   },
                   category: {
                     type: "string",
@@ -292,9 +290,9 @@ You MUST use the available functions when appropriate. Mood can change during co
                       "work_commute",
                       "errands_shopping",
                       "social_visits",
-                      "entertainment_dining",
-                      "weekend_trips",
+                      "leisure_recreation",
                       "medical_appointments",
+                      "other",
                       "general",
                     ],
                     description: "Category of trip data to retrieve",
@@ -302,6 +300,19 @@ You MUST use the available functions when appropriate. Mood can change during co
                   query: {
                     type: "string",
                     description: "Description of what the user is asking about",
+                  },
+                  timeRange: {
+                    type: "string",
+                    enum: ["latest", "today", "yesterday", "last_week", "last_month", "all"],
+                    description: "Time range for trip data (optional)",
+                  },
+                  startDate: {
+                    type: "string",
+                    description: "Start date for custom date range (YYYY-MM-DD format, optional)",
+                  },
+                  endDate: {
+                    type: "string",
+                    description: "End date for custom date range (YYYY-MM-DD format, optional)",
                   },
                 },
                 required: ["userId", "category", "query"],
