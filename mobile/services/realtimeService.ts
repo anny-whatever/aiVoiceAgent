@@ -111,7 +111,7 @@ export class RealtimeEventHandler {
       args.userId = this.args.selectedUser;
       console.log('🔍 Calling backend with args:', args);
 
-      const result = await ApiService.getDrivingData();
+      const result = await ApiService.getDrivingData(args);
       console.log('✅ Backend response:', result);
 
       if (this.args.dcRef.current) {
@@ -217,7 +217,7 @@ export class RealtimeEventHandler {
       args.userId = this.args.selectedUser;
       console.log('🚗 Calling backend for vehicle info with args:', args);
 
-      const result = await ApiService.getVehicleInfo();
+      const result = await ApiService.getVehicleInfo(args);
       console.log('✅ Vehicle info response:', result);
 
       if (this.args.dcRef.current) {
@@ -269,7 +269,7 @@ export class RealtimeEventHandler {
       args.userId = this.args.selectedUser;
       console.log('👤 Calling backend for user info with args:', args);
 
-      const result = await ApiService.getUserInfo();
+      const result = await ApiService.getUserInfo(args);
       console.log('✅ User info response:', result);
 
       if (this.args.dcRef.current) {

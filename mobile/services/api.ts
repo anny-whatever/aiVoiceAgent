@@ -121,10 +121,10 @@ class ApiService {
     return { openaiApiKey: response.apiKey, sessionInfo };
   }
 
-  async getDrivingData(): Promise<any> {
+  async getDrivingData(args: any = {}): Promise<any> {
     return await this.makeRequest('/api/tools/get_driving_data', {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify(args),
     });
   }
 
@@ -138,17 +138,17 @@ class ApiService {
     });
   }
 
-  async getVehicleInfo(): Promise<any> {
+  async getVehicleInfo(args: any = {}): Promise<any> {
     return await this.makeRequest('/api/tools/get_vehicle_info', {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify(args),
     });
   }
 
-  async getUserInfo(): Promise<User> {
+  async getUserInfo(args: any = {}): Promise<User> {
     return await this.makeRequest('/api/tools/get_user_info', {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify(args),
     });
   }
 
