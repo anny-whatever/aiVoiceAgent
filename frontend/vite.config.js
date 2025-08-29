@@ -6,11 +6,11 @@ export default defineConfig({
   server: { 
     port: 5173,
     host: '0.0.0.0', // Allow external access
-    strictPort: true
+    strictPort: true,
+    allowedHosts: ['test.complianceone.ai', 'newtest.complianceone.ai', "c234422adcbb.ngrok-free.app"]
   },
   preview: {
     port: 5173,
     host: '0.0.0.0',
-  allowedHosts: ['test.complianceone.ai', 'newtest.complianceone.ai']
   }
 });
