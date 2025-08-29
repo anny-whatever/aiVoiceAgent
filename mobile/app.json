@@ -9,7 +9,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bitcode": false,
+      "bundleIdentifier": "com.anny2623.mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,8 +28,10 @@
         "android.permission.INTERNET",
         "android.permission.WAKE_LOCK",
         "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN"
-      ]
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "package": "com.anny2623.mobile"
     },
     "web": {
       "bundler": "metro",

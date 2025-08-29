@@ -162,7 +162,7 @@ export class RealtimeEventHandler {
       const args = JSON.parse(event.arguments || '{}');
       args.userId = this.args.selectedUser;
       args.sessionId = `session-${Date.now()}-${this.args.selectedUser}`;
-      const result = await ApiService.assessUserMood(args);
+      const result = await ApiService.assessUserMood(args.userResponse || '', args.audioData);
 
       // Update mood state for UI display
       if (result.mood) {

@@ -129,9 +129,12 @@ class ApiService {
   }
 
   async assessUserMood(transcript: string, audioData?: string): Promise<MoodAssessment> {
+    // Ensure transcript is always a string to prevent backend substring errors
+    const userResponse = typeof transcript === 'string' ? transcript : String(transcript || '');
+    
     return await this.makeRequest('/api/tools/assess_user_mood', {
       method: 'POST',
-      body: JSON.stringify({ userResponse: transcript, sessionId: this.sessionManager.getSessionToken() }),
+      body: JSON.stringify({ userResponse, sessionId: this.sessionManager.getSessionToken() }),
     });
   }
 
