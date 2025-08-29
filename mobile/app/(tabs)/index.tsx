@@ -156,7 +156,9 @@ export default function HomeScreen() {
           quota.updateQuotaStatus();
           // Start the live timer countdown
           quota.startTimer();
-        }
+        },
+        appConfig.apiKey,
+        appConfig.uid
       );
 
       // Fetch real user data from the API

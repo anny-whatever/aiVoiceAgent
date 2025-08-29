@@ -87,7 +87,7 @@ router.post("/session", validateApiKey, async (req, res) => {
       sessionToken: sessionResult.token,
       quotaRemaining: sessionResult.quotaRemaining,
       sessionTimeLimit: 10800, // Default 180 minutes (3 hours) session limit
-      warningThreshold: false,
+      warningThreshold: 1800, // Warning at 30 minutes remaining
     });
   } catch (e: any) {
     console.error("Session creation error:", e);

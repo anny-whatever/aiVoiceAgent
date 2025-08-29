@@ -7,7 +7,6 @@ import {
 } from "../services/webrtc";
 import ApiService from "../services/api";
 import heartbeatService from "../services/heartbeatService";
-import { getUrlParam } from "../utils/urlParams";
 
 export const useWebRTC = () => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
@@ -63,20 +62,25 @@ export const useWebRTC = () => {
       selectedUser: string,
       onEvent: (event: any) => void,
       onRemoteTrack: (stream: any) => void,
-      onSessionCreated?: (sessionInfo: SessionInfo) => void
+      onSessionCreated?: (sessionInfo: SessionInfo) => void,
+      apiKey?: string,
+      uid?: string
     ) => {
       try {
         setStatus("Connecting...");
 
-        const apiKey = getUrlParam('apiKey') || '';
-        const uid = getUrlParam('uid');
-        const sessionInfo = await ApiService.createSession(apiKey, uid);
+        // Use provided apiKey and uid from app config
+        if (!apiKey || !uid) {
+          throw new Error('API key and UID are required for connection');
+        }
+        const sessionResult = await ApiService.createSession(apiKey, uid);
         
         // Notify about session creation
-        onSessionCreated?.(sessionInfo);
+        onSessionCreated?.(sessionResult.sessionInfo);
 
+        // Use the OpenAI API key returned from the backend
         const { pc, dc, mic } = await connectRealtime({
-          apiKey,
+          apiKey: sessionResult.openaiApiKey,
           backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL || '',
           onEvent,
           onRemoteTrack,
@@ -86,7 +90,7 @@ export const useWebRTC = () => {
         dcRef.current = dc;
         micRef.current = mic;
 
-        return { pc, dc, mic, sessionInfo };
+        return { pc, dc, mic, sessionInfo: sessionResult.sessionInfo };
       } catch (error) {
         console.error("Connection error:", error);
         setStatus(

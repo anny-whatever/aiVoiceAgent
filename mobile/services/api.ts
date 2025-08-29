@@ -56,8 +56,17 @@ class ApiService {
     return ApiService.instance;
   }
 
+  private getApiQueryParams(): string {
+    // Get API key and UID from environment or config
+    const apiKey = process.env.API_KEY || '5a0fe6a5eb768c1bb43999b8aa56a7cf';
+    const uid = process.env.UID || '0RzeMsFE8EdpQSAFnh70VeyLnIr2';
+    return `api=${apiKey}&uid=${uid}`;
+  }
+
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const url = `${this.baseUrl}${endpoint}`;
+    // Add query parameters to the endpoint
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const url = `${this.baseUrl}${endpoint}${separator}${this.getApiQueryParams()}`;
     const sessionToken = this.sessionManager.getSessionToken();
     
     const headers = {
@@ -83,55 +92,77 @@ class ApiService {
     }
   }
 
-  async createSession(apiKey: string, uid?: string): Promise<SessionInfo> {
+  async createSession(apiKey: string, uid?: string): Promise<{ openaiApiKey: string; sessionInfo: SessionInfo }> {
     const response = await this.makeRequest('/api/session', {
       method: 'POST',
-      body: JSON.stringify({ apiKey, uid }),
+      body: JSON.stringify({ userId: uid }),
     });
 
     this.sessionManager.setSessionToken(response.sessionToken);
-    this.sessionManager.setQuota(response.quota);
     
-    return response;
+    // Convert backend response to QuotaStatus format
+    const quotaStatus: QuotaStatus = {
+      remaining: response.quotaRemaining || 0,
+      total: response.sessionTimeLimit || 0,
+      percentage: response.sessionTimeLimit > 0 ? (response.quotaRemaining / response.sessionTimeLimit) * 100 : 0,
+      isWarning: response.quotaRemaining <= (response.warningThreshold || 0),
+      isCritical: response.quotaRemaining <= (response.warningThreshold || 0) * 0.5,
+    };
+    
+    this.sessionManager.setQuota(quotaStatus);
+    
+    const sessionInfo: SessionInfo = {
+      sessionToken: response.sessionToken,
+      quotaRemaining: response.quotaRemaining,
+      sessionTimeLimit: response.sessionTimeLimit,
+      warningThreshold: response.warningThreshold,
+    };
+    
+    return { openaiApiKey: response.apiKey, sessionInfo };
   }
 
   async getDrivingData(): Promise<any> {
-    return await this.makeRequest('/api/driving-data', {
+    return await this.makeRequest('/api/tools/get_driving_data', {
       method: 'POST',
       body: JSON.stringify({}),
     });
   }
 
   async assessUserMood(transcript: string, audioData?: string): Promise<MoodAssessment> {
-    return await this.makeRequest('/api/assess-mood', {
+    return await this.makeRequest('/api/tools/assess_user_mood', {
       method: 'POST',
-      body: JSON.stringify({ transcript, audioData }),
+      body: JSON.stringify({ userResponse: transcript, sessionId: this.sessionManager.getSessionToken() }),
     });
   }
 
   async getVehicleInfo(): Promise<any> {
-    return await this.makeRequest('/api/vehicle-info', {
+    return await this.makeRequest('/api/tools/get_vehicle_info', {
       method: 'POST',
       body: JSON.stringify({}),
     });
   }
 
   async getUserInfo(): Promise<User> {
-    return await this.makeRequest('/api/user-info', {
+    return await this.makeRequest('/api/tools/get_user_info', {
       method: 'POST',
       body: JSON.stringify({}),
     });
   }
 
   async sendHeartbeat(timestamp: number): Promise<void> {
+    const sessionToken = this.sessionManager.getSessionToken();
+    if (!sessionToken) {
+      throw new Error('No session token available for heartbeat');
+    }
+    
     await this.makeRequest('/api/heartbeat', {
       method: 'POST',
-      body: JSON.stringify({ timestamp }),
+      body: JSON.stringify({ sessionToken, timestamp }),
     });
   }
 
   async searchWeb(query: string): Promise<any> {
-    return await this.makeRequest('/api/search', {
+    return await this.makeRequest('/api/tools/search_web', {
       method: 'POST',
       body: JSON.stringify({ query }),
     });
