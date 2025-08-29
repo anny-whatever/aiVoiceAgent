@@ -1,7 +1,7 @@
 import ApiService from './api';
 
 class HeartbeatService {
-  private intervalId: NodeJS.Timeout | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
   private isActive: boolean = false;
   private sessionStartTime: number = 0;
 

@@ -165,16 +165,21 @@ export class RealtimeEventHandler {
       const result = await ApiService.assessUserMood(args.userResponse || '', args.audioData);
 
       // Update mood state for UI display
-      if (result.mood) {
-        this.args.setCurrentMood(result.mood);
-        this.args.setMoodConfidence(result.confidence || 0);
+      // Backend returns { assessment: { mood, confidence, reasoning, timestamp }, instructions, content }
+      const mood = result.assessment?.mood;
+      const confidence = result.assessment?.confidence || 0;
+      
+      if (mood) {
+        console.log('🎭 Updating mood state:', { mood, confidence });
+        this.args.setCurrentMood(mood);
+        this.args.setMoodConfidence(confidence);
       }
 
       if (this.args.dcRef.current) {
         this.args.sendFunctionResult(
           this.args.dcRef.current,
           event.call_id,
-          `Mood assessed: ${result.mood || 'unknown'} (confidence: ${result.confidence || 0})`
+          `Mood assessed: ${mood || 'unknown'} (confidence: ${confidence})`
         );
 
         setTimeout(() => {

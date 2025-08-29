@@ -128,7 +128,7 @@ class ApiService {
     });
   }
 
-  async assessUserMood(transcript: string, audioData?: string): Promise<MoodAssessment> {
+  async assessUserMood(transcript: string, audioData?: string): Promise<{ assessment: MoodAssessment; instructions: string; content: string }> {
     // Ensure transcript is always a string to prevent backend substring errors
     const userResponse = typeof transcript === 'string' ? transcript : String(transcript || '');
     

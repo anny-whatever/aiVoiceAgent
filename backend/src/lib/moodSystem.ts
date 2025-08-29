@@ -119,8 +119,17 @@ Respond ONLY with a JSON object in this exact format:
       throw new Error("No response from AI");
     }
 
-    // Parse AI response
-    const moodAnalysis = JSON.parse(aiResponse);
+    // Parse AI response - handle markdown-wrapped JSON
+    let cleanedResponse = aiResponse.trim();
+    
+    // Remove markdown code blocks if present
+    if (cleanedResponse.startsWith('```json')) {
+      cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanedResponse.startsWith('```')) {
+      cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    const moodAnalysis = JSON.parse(cleanedResponse);
 
     // Validate the mood is one of our enums
     const validMoods = Object.values(UserMood);
