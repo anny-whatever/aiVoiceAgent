@@ -164,10 +164,10 @@ class ApiService {
     });
   }
 
-  async searchWeb(query: string): Promise<any> {
+  async searchWeb(args: any): Promise<any> {
     return await this.makeRequest('/api/tools/search_web', {
       method: 'POST',
-      body: JSON.stringify({ query }),
+      body: JSON.stringify(args),
     });
   }
 
