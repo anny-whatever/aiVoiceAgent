@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react";
-import { WebRTCRefs, ConnectionStatus, SessionInfo } from "../types";
+import { WebRTCRefs, ConnectionStatus, SessionInfo } from '../types/index';
 import {
   connectRealtime,
   sendSessionUpdate,

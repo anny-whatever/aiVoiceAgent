@@ -14,6 +14,6 @@ export interface EventHandlerArgs {
   aiDing: () => void;
   sendSessionUpdate: (dc: RTCDataChannel, update: any) => void;
   sendFunctionResult: (dc: RTCDataChannel, callId: string, result: string) => void;
-  sendResponseCreate: (dc: RTCDataChannel) => void;
+  sendResponseCreate: (dc: RTCDataChannel, response?: any) => void;
   videoMoodRef?: React.RefObject<VideoMoodDetectionRef>;
 }
