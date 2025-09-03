@@ -404,22 +404,24 @@ You MUST use the available functions when appropriate. Mood can change during co
             },
             {
               type: "function",
-              name: "analyze_image",
+              name: "capture_and_analyze_image",
               description:
-                "Analyze images captured from the camera when user asks vision-related questions like 'can you see', 'look at this', 'what do you see', or requests visual analysis. This tool uses OpenAI Vision API to describe what's visible in the image.",
+                "Capture an image from the user's camera and analyze it when they ask vision-related questions like 'can you see', 'look at this', 'what do you see', 'what plant is this', or any question that suggests they want you to look at something. This tool automatically captures from the camera and provides visual analysis.",
               parameters: {
                 type: "object",
                 properties: {
-                  imageData: {
-                    type: "string",
-                    description: "Base64 encoded image data from camera capture",
-                  },
                   context: {
                     type: "string",
-                    description: "Optional context about what the user is asking about the image",
+                    description: "The user's question or context about what they want you to analyze in the image",
+                  },
+                  captureQuality: {
+                    type: "number",
+                    description: "Image capture quality from 0.1 to 1.0, default 0.8",
+                    minimum: 0.1,
+                    maximum: 1.0,
                   },
                 },
-                required: ["imageData"],
+                required: ["context"],
               },
             },
           ],

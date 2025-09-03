@@ -47,26 +47,32 @@ router.post("/session", validateApiKey, async (req, res) => {
         "OpenAI-Beta": "realtime=v1", // not strictly required here, but harmless
       },
       body: JSON.stringify({
-        model: "gpt-4o-realtime-preview-2024-12-17",
+        model: "gpt-realtime",
         voice: "alloy",
+        modalities: ["text", "audio"],
+        input_audio_transcription: {
+          model: "whisper-1"
+        },
         tools: [
           {
             type: "function",
-            name: "analyze_image",
-            description: "Analyze an image captured from the user's camera to describe what you can see. Use this when the user asks questions like 'can you see', 'look at this', 'what do you see', or similar vision-related requests.",
+            name: "capture_and_analyze_image",
+            description: "Capture an image from the user's camera and analyze it when they ask vision-related questions like 'can you see', 'look at this', 'what do you see', 'what plant is this', or any question that suggests they want you to look at something. This tool automatically captures from the camera and provides visual analysis.",
             parameters: {
               type: "object",
               properties: {
-                imageData: {
-                  type: "string",
-                  description: "Base64 encoded image data from the camera capture"
-                },
                 context: {
                   type: "string",
-                  description: "Context or question from the user about what they want you to analyze in the image"
+                  description: "The user's question or context about what they want you to analyze in the image"
+                },
+                captureQuality: {
+                  type: "number",
+                  description: "Image capture quality from 0.1 to 1.0, default 0.8",
+                  minimum: 0.1,
+                  maximum: 1.0
                 }
               },
-              required: ["imageData"]
+              required: ["context"]
             }
           }
         ],

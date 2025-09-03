@@ -5,12 +5,22 @@ import {
   sendSessionUpdate,
 } from "../webrtc";
 import { EventHandlerArgs } from "../types";
+import { cameraCapture } from "./cameraCapture";
+import { 
+  SpeechKeywordDetector, 
+  createVisionKeywordDetector, 
+  KeywordMatch 
+} from "./speechKeywordDetection";
 
 export class RealtimeEventHandler {
   private args: EventHandlerArgs;
+  private speechKeywordDetector: SpeechKeywordDetector;
 
   constructor(args: EventHandlerArgs) {
     this.args = args;
+    this.speechKeywordDetector = createVisionKeywordDetector(
+      this.handleKeywordDetected.bind(this)
+    );
   }
 
   async handleEvent(event: any) {
@@ -64,6 +74,10 @@ export class RealtimeEventHandler {
         setTimeout(this.args.userDing, 250);
         break;
 
+      case "conversation.item.input_audio_transcription.completed":
+        await this.handleSpeechTranscript(event);
+        break;
+
       case "response.function_call_arguments.done":
         await this.handleFunctionCall(event);
         break;
@@ -77,6 +91,56 @@ export class RealtimeEventHandler {
         console.error("❌ Full error event:", event);
         this.args.setStatus(`Error: ${event.error?.message || "Unknown"}`);
         break;
+    }
+  }
+
+  private async handleSpeechTranscript(event: any) {
+    try {
+      const transcript = event.transcript;
+      if (transcript && transcript.trim()) {
+        console.log("🎤 Speech transcript:", transcript);
+        
+        // Process transcript through keyword detector
+        this.speechKeywordDetector.processTranscript(transcript);
+      }
+    } catch (error) {
+      console.error("❌ Error processing speech transcript:", error);
+    }
+  }
+
+  private async handleKeywordDetected(match: KeywordMatch) {
+    console.log("🔍 Keyword detected:", match);
+    
+    try {
+      // Handle vision-related keywords - all keywords in DEFAULT_VISION_KEYWORDS are vision-related
+      if (match.confidence >= 0.7 && this.args.videoMoodRef?.current) {
+        console.log("📸 Vision keyword detected, capturing image...");
+        
+        const captureResult = this.args.videoMoodRef.current.captureImage({
+          quality: 0.8,
+          format: 'jpeg'
+        });
+        
+        if (captureResult.success && captureResult.imageData) {
+          // Analyze the captured image
+          const analysisData = {
+            imageData: captureResult.imageData,
+            context: `User mentioned: "${match.keyword}" in context: "${match.context}". Analyze what they're referring to in the image.`
+          };
+          
+          const result = await ApiService.analyzeImage(analysisData);
+          
+          if (result.success && this.args.dcRef.current) {
+            // Send the analysis as additional context
+            console.log("📤 Sending vision analysis as context");
+            
+            // You might want to add this as a system message or context
+            // This depends on your specific implementation needs
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error handling keyword detection:", error);
     }
   }
 
@@ -107,6 +171,8 @@ export class RealtimeEventHandler {
       await this.handleSearchWebCall(event);
     } else if (event.name === "analyze_image") {
       await this.handleAnalyzeImageCall(event);
+    } else if (event.name === "capture_and_analyze_image") {
+      await this.handleCaptureAndAnalyzeImageCall(event);
     } else {
       console.warn("⚠️ Unknown function call:", event.name);
     }
@@ -468,6 +534,93 @@ export class RealtimeEventHandler {
           if (this.args.dcRef.current) {
             console.log(
               "📤 Triggering model response after image analysis error"
+            );
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    }
+  }
+
+  private async handleCaptureAndAnalyzeImageCall(event: any) {
+    try {
+      const args = JSON.parse(event.arguments || "{}");
+      console.log("📸 Capturing and analyzing image with args:", args);
+
+      // Get the video mood detection component
+       const videoMoodDetection = this.args.videoMoodRef?.current;
+       if (!videoMoodDetection) {
+         throw new Error("Camera video component not available");
+       }
+
+       if (!videoMoodDetection.isReady()) {
+         throw new Error("Camera not ready for capture");
+       }
+
+      // Capture image from video
+       const captureResult = videoMoodDetection.captureImage({
+         quality: args.captureQuality || 0.8,
+         format: 'jpeg'
+       });
+
+      if (!captureResult.success || !captureResult.imageData) {
+        throw new Error(captureResult.error || "Failed to capture image");
+      }
+
+      // Prepare data for analysis
+      const analysisData = {
+        imageData: captureResult.imageData,
+        context: args.context || "Analyze this image"
+      };
+
+      console.log("🖼️ Calling backend for image analysis with captured image");
+      const result = await ApiService.analyzeImage(analysisData);
+      console.log("✅ Image analysis response:", result);
+
+      if (this.args.dcRef.current) {
+        console.log("📤 Sending image analysis result back to model");
+        
+        // Send the analysis result to AI
+        const functionOutput = {
+          success: result.success || false,
+          content: result.content || "I couldn't analyze the image.",
+          analysis: result.data?.analysis || "",
+          context: result.data?.context || null,
+          timestamp: result.data?.timestamp || new Date().toISOString(),
+          captureInfo: {
+            dimensions: captureResult.dimensions,
+            timestamp: captureResult.timestamp
+          }
+        };
+        
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          JSON.stringify(functionOutput)
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log("📤 Triggering model response after image capture and analysis");
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error("❌ Image capture and analysis error:", error);
+      if (this.args.dcRef.current) {
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          `Sorry, I couldn't capture and analyze the image. Error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log(
+              "📤 Triggering model response after image capture and analysis error"
             );
             this.args.sendResponseCreate(this.args.dcRef.current);
           }
