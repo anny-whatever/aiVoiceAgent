@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import { ENV } from "../config/env";
 import { usageService } from "../lib/usageService";
 import { validateApiKey, sessionCors, addSessionHeaders } from "../middleware/sessionMiddleware";
+import { updateVideoMood, getCombinedMoodAssessment } from "../lib/moodSystem";
 
 
 const router = Router();
@@ -93,6 +94,76 @@ router.post("/session", validateApiKey, async (req, res) => {
     console.error("Session creation error:", e);
     return res.status(500).json({
       error: "Failed to create session",
+      message: e?.message || "Unknown error",
+    });
+  }
+});
+
+/**
+ * Updates video mood data for a session
+ */
+router.post("/video-mood", validateApiKey, async (req, res) => {
+  try {
+    const { userId, sessionId, expressions, confidence } = req.body;
+
+    if (!userId || !sessionId || !expressions || confidence === undefined) {
+      return res.status(400).json({
+        error: "Missing required fields",
+        message: "userId, sessionId, expressions, and confidence are required",
+      });
+    }
+
+    // Update video mood in session
+    updateVideoMood(userId, sessionId, expressions, confidence);
+
+    // Get combined mood assessment
+    const combinedMood = getCombinedMoodAssessment(userId, sessionId);
+
+    res.json({
+      success: true,
+      message: "Video mood updated successfully",
+      combinedMood,
+    });
+  } catch (e: any) {
+    console.error("Video mood update error:", e);
+    return res.status(500).json({
+      error: "Failed to update video mood",
+      message: e?.message || "Unknown error",
+    });
+  }
+});
+
+/**
+ * Gets combined mood assessment for a session
+ */
+router.get("/mood/:userId/:sessionId", validateApiKey, async (req, res) => {
+  try {
+    const { userId, sessionId } = req.params;
+
+    if (!userId || !sessionId) {
+      return res.status(400).json({
+        error: "Missing required parameters",
+        message: "userId and sessionId are required",
+      });
+    }
+
+    const combinedMood = getCombinedMoodAssessment(userId, sessionId);
+
+    if (!combinedMood) {
+      return res.status(404).json({
+        error: "No mood data found",
+        message: "No mood assessment available for this session",
+      });
+    }
+
+    res.json({
+      success: true,
+      mood: combinedMood,
+    });
+  } catch (e: any) {
+    console.error("Get mood error:", e);
+    return res.status(500).json({
+      error: "Failed to get mood data",
       message: e?.message || "Unknown error",
     });
   }

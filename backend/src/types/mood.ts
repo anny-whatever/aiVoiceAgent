@@ -15,12 +15,21 @@ export interface MoodAssessment {
   confidence: number; // 0-1 scale of confidence in assessment
   reasoning: string; // Brief explanation of mood detection
   timestamp: string; // ISO timestamp of assessment
+  source: 'speech' | 'video' | 'combined'; // Source of mood detection
+}
+
+export interface VideoMoodData {
+  mood: UserMood;
+  confidence: number;
+  expressions: Record<string, number>; // Raw expression scores from face-api.js
+  timestamp: string;
 }
 
 export interface UserSession {
   userId: string;
   sessionId: string;
   currentMood?: MoodAssessment;
+  videoMood?: VideoMoodData;
   conversationContext?: string;
   createdAt: string;
   lastUpdated: string;

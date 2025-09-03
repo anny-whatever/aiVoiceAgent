@@ -5,6 +5,13 @@ interface MoodDisplayProps {
   moodConfidence: number;
   getMoodEmoji: (mood: string | null) => string;
   getMoodColor: (mood: string | null) => string;
+  videoMood?: {
+    mood: string | null;
+    confidence: number;
+    isActive: boolean;
+  };
+  getVideoMoodEmoji?: () => string;
+  getVideoMoodColor?: () => string;
 }
 
 export const MoodDisplay: React.FC<MoodDisplayProps> = ({
@@ -12,6 +19,9 @@ export const MoodDisplay: React.FC<MoodDisplayProps> = ({
   moodConfidence,
   getMoodEmoji,
   getMoodColor,
+  videoMood,
+  getVideoMoodEmoji,
+  getVideoMoodColor,
 }) => {
 
   
@@ -19,9 +29,49 @@ export const MoodDisplay: React.FC<MoodDisplayProps> = ({
   return (
     <div className="p-4 mb-6 bg-gradient-to-r from-gray-800/80 to-gray-900/80 rounded-xl border border-gray-700/50 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
       <div className="text-center mb-3">
-        <h3 className="text-sm font-medium text-gray-300 mb-2">Current Mood</h3>
-
-        {currentMood ? (
+        <h3 className="text-sm font-medium text-gray-300 mb-2">Mood Detection</h3>
+        
+        {/* Dual mood display when video is active */}
+        {videoMood?.isActive ? (
+          <div className="grid grid-cols-2 gap-4">
+            {/* Speech Mood */}
+            <div className="border-r border-gray-600 pr-4">
+              <h4 className="text-xs text-gray-400 mb-2">Speech</h4>
+              {currentMood ? (
+                <div className="text-center">
+                  <div className="text-2xl mb-1">{getMoodEmoji(currentMood)}</div>
+                  <div className="text-sm font-medium text-gray-100 capitalize">{currentMood}</div>
+                  <div className="text-xs text-gray-400">{Math.round(moodConfidence * 100)}%</div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="text-xl mb-1">🤔</div>
+                  <div className="text-xs text-gray-400">Analyzing...</div>
+                </div>
+              )}
+            </div>
+            
+            {/* Video Mood */}
+            <div className="pl-4">
+              <h4 className="text-xs text-gray-400 mb-2">Video</h4>
+              {videoMood.mood ? (
+                <div className="text-center">
+                  <div className="text-2xl mb-1">{getVideoMoodEmoji?.()}</div>
+                  <div className="text-sm font-medium text-gray-100 capitalize">{videoMood.mood}</div>
+                  <div className="text-xs text-gray-400">{Math.round(videoMood.confidence * 100)}%</div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="text-xl mb-1">📹</div>
+                  <div className="text-xs text-gray-400">Detecting...</div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+           /* Single mood display when video is not active */
+           <div>
+            {currentMood ? (
           <>
             <div className="flex gap-3 justify-center items-center mb-3">
               <div className="text-3xl animate-bounce">
@@ -93,6 +143,8 @@ export const MoodDisplay: React.FC<MoodDisplayProps> = ({
             </div>
           </div>
         )}
+           </div>
+         )}
       </div>
     </div>
   );

@@ -8,16 +8,18 @@ import {
 import { useWebRTC } from "./hooks/useWebRTC";
 import { useAudio } from "./hooks/useAudio";
 import { useMood } from "./hooks/useMood";
+import useVideoMood from "./hooks/useVideoMood";
 import { useLanguages } from "./hooks/useLanguages";
 import { useQuota } from "./hooks/useQuota";
 import { RealtimeEventHandler } from "./services/realtimeService";
-import { getRequiredURLParams } from "./utils/urlParams";
+import { parseURLParams } from "./utils/urlParams";
 import {
   MoodDisplay,
   MoodEmoji,
   LanguageSelector,
   VoiceControls,
   InfoPanel,
+  VideoMoodDetection,
 } from "./components";
 
 export default function App() {
@@ -25,8 +27,12 @@ export default function App() {
   const webRTC = useWebRTC();
   const { userDing, aiDing, controlMicrophone } = useAudio();
   const mood = useMood();
+  const videoMood = useVideoMood();
   const languages = useLanguages();
   const quota = useQuota();
+  
+  // Video UI state
+  const [isVideoMinimized, setIsVideoMinimized] = useState(false);
   
   // URL params state
   const [urlParams, setUrlParams] = useState(null);
@@ -36,13 +42,14 @@ export default function App() {
 
   // Initialize URL parameters on app start
   useEffect(() => {
-    try {
-      const params = getRequiredURLParams();
-      setUrlParams(params);
+    const params = parseURLParams();
+    setUrlParams(params);
+    
+    if (!params.apiKey || !params.uid) {
+      setParamError('Missing URL parameters for full functionality. Video mood detection will work without them.');
+      console.warn('URL parameter warning: Missing api or uid parameters. Some features may be limited.');
+    } else {
       console.log('Initialized with URL params:', { uid: params.uid, apiKey: params.apiKey ? '[REDACTED]' : null });
-    } catch (error) {
-      setParamError(error.message);
-      console.error('URL parameter error:', error.message);
     }
   }, []);
 
@@ -86,6 +93,8 @@ export default function App() {
           quota.updateQuotaStatus();
           // Start the live timer countdown
           quota.startTimer();
+          // Activate video mood detection
+          videoMood.setVideoMoodActive(true);
         }
       );
 
@@ -135,6 +144,8 @@ export default function App() {
   const handleStop = () => {
     webRTC.disconnect();
     mood.clearMood();
+    videoMood.clearVideoMood();
+    videoMood.setVideoMoodActive(false);
     // Stop the timer and reset session
     quota.stopTimer();
     quota.resetSession();
@@ -171,9 +182,18 @@ export default function App() {
         
         {/* Mood + Info - Top Right */}
         <div className="flex items-center gap-3">
-          <MoodEmoji
+          <MoodDisplay
             currentMood={mood.currentMood}
+            moodConfidence={mood.moodConfidence}
             getMoodEmoji={mood.getMoodEmoji}
+            getMoodColor={mood.getMoodColor}
+            videoMood={{
+              mood: videoMood.videoMood.mood,
+              confidence: videoMood.videoMood.confidence,
+              isActive: videoMood.videoMood.isActive
+            }}
+            getVideoMoodEmoji={videoMood.getVideoMoodEmoji}
+            getVideoMoodColor={videoMood.getVideoMoodColor}
           />
           <InfoPanel />
         </div>
@@ -232,6 +252,17 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* Video Mood Detection - Fixed position */}
+      {webRTC.connectionStatus.isConnected && (
+        <div className="fixed bottom-4 right-4 z-20">
+          <VideoMoodDetection
+            onExpressionDetected={videoMood.updateVideoMood}
+            isMinimized={isVideoMinimized}
+            onToggleMinimize={() => setIsVideoMinimized(!isVideoMinimized)}
+          />
+        </div>
+      )}
 
       <audio ref={audioRef} autoPlay className="hidden" />
     </div>

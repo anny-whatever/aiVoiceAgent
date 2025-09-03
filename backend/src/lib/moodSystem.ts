@@ -2,6 +2,7 @@ import {
   UserMood,
   MoodAssessment,
   UserSession,
+  VideoMoodData,
   MOOD_CHARACTERISTICS,
 } from "../types/mood";
 
@@ -145,6 +146,7 @@ Respond ONLY with a JSON object in this exact format:
       confidence,
       reasoning: moodAnalysis.reasoning || "AI mood and tone analysis",
       timestamp: new Date().toISOString(),
+      source: 'speech',
     };
 
     // Store in session
@@ -175,6 +177,7 @@ Respond ONLY with a JSON object in this exact format:
       confidence: 0.3,
       reasoning: "AI analysis failed, defaulting to neutral",
       timestamp: new Date().toISOString(),
+      source: 'speech',
     };
 
     updateSessionMood(userId, sessionId, fallbackAssessment);
@@ -248,11 +251,130 @@ Remember to maintain this mood-appropriate tone throughout the entire conversati
  */
 export function cleanupOldSessions(maxAgeHours: number = 24): void {
   const cutoffTime = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
+  let cleanedCount = 0;
 
   for (const [key, session] of activeSessions.entries()) {
     if (new Date(session.lastUpdated) < cutoffTime) {
       activeSessions.delete(key);
-      console.log(`🧹 Cleaned up old session: ${key}`);
+      cleanedCount++;
     }
   }
+
+  console.log(`🧹 Cleaned up ${cleanedCount} old sessions`);
+}
+
+/**
+ * Maps face-api.js expressions to UserMood enum
+ */
+function mapExpressionsToMood(expressions: Record<string, number>): UserMood {
+  const {
+    happy = 0,
+    sad = 0,
+    angry = 0,
+    fearful = 0,
+    disgusted = 0,
+    surprised = 0,
+    neutral = 0
+  } = expressions;
+
+  // Calculate mood based on dominant expressions
+  if (happy > 0.6) return UserMood.HAPPY;
+  if (happy > 0.3) return UserMood.CONTENT;
+  if (sad > 0.4 || fearful > 0.3) return UserMood.TIRED;
+  if (angry > 0.4 || disgusted > 0.3) return UserMood.STRESSED;
+  
+  return UserMood.NEUTRAL;
+}
+
+/**
+ * Updates video mood data for a session
+ */
+export function updateVideoMood(
+  userId: string,
+  sessionId: string,
+  expressions: Record<string, number>,
+  confidence: number
+): void {
+  const sessionKey = `${userId}:${sessionId}`;
+  const existingSession = activeSessions.get(sessionKey);
+  
+  if (!existingSession) {
+    console.log(`⚠️ No session found for video mood update: ${userId}:${sessionId}`);
+    return;
+  }
+
+  const mood = mapExpressionsToMood(expressions);
+  const videoMoodData: VideoMoodData = {
+    mood,
+    confidence,
+    expressions,
+    timestamp: new Date().toISOString()
+  };
+
+  const updatedSession: UserSession = {
+    ...existingSession,
+    videoMood: videoMoodData,
+    lastUpdated: new Date().toISOString()
+  };
+
+  activeSessions.set(sessionKey, updatedSession);
+  console.log(`📹 Video mood updated for ${userId}: ${mood} (confidence: ${confidence.toFixed(2)})`);
+}
+
+/**
+ * Combines speech and video mood data to create a unified assessment
+ */
+export function getCombinedMoodAssessment(
+  userId: string,
+  sessionId: string
+): MoodAssessment | null {
+  const session = getSessionData(userId, sessionId);
+  if (!session) return null;
+
+  const { currentMood: speechMood, videoMood } = session;
+  
+  // If only speech mood exists
+  if (speechMood && !videoMood) {
+    return speechMood;
+  }
+  
+  // If only video mood exists
+  if (!speechMood && videoMood) {
+    return {
+      mood: videoMood.mood,
+      confidence: videoMood.confidence,
+      reasoning: "Video-based facial expression analysis",
+      timestamp: videoMood.timestamp,
+      source: 'video'
+    };
+  }
+  
+  // If both exist, combine them
+  if (speechMood && videoMood) {
+    // Weight speech mood higher as it's more contextual
+    const speechWeight = 0.7;
+    const videoWeight = 0.3;
+    
+    const combinedConfidence = (
+      speechMood.confidence * speechWeight + 
+      videoMood.confidence * videoWeight
+    );
+    
+    // Use speech mood as primary, but boost confidence if video agrees
+    const finalMood = speechMood.mood === videoMood.mood 
+      ? speechMood.mood 
+      : speechMood.mood; // Prioritize speech for disagreements
+    
+    const agreementBonus = speechMood.mood === videoMood.mood ? 0.1 : 0;
+    
+    return {
+      mood: finalMood,
+      confidence: Math.min(1, combinedConfidence + agreementBonus),
+      reasoning: `Combined analysis: speech (${speechMood.mood}, ${(speechMood.confidence * 100).toFixed(0)}%) + video (${videoMood.mood}, ${(videoMood.confidence * 100).toFixed(0)}%)`,
+      timestamp: new Date().toISOString(),
+      source: 'combined'
+    };
+  }
+  
+  return null;
 }

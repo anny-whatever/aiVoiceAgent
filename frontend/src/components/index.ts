@@ -5,3 +5,4 @@ export { LanguageSelector } from "./LanguageSelector";
 export { VoiceControls } from "./VoiceControls";
 export { InfoPanel } from "./InfoPanel";
 export { QuotaIndicator } from "./QuotaIndicator";
+export { default as VideoMoodDetection } from './VideoMoodDetection';
