@@ -159,6 +159,15 @@ export default function App() {
     }
   }, [quota.isSessionTerminated, webRTC.connectionStatus.isConnected]);
 
+  // Activate video mood when connected
+  useEffect(() => {
+    if (webRTC.connectionStatus.isConnected) {
+      videoMood.setVideoMoodActive(true);
+    } else {
+      videoMood.setVideoMoodActive(false);
+    }
+  }, [webRTC.connectionStatus.isConnected]);
+
   // Cleanup on unmount
   useEffect(() => () => handleStop(), []);
 
@@ -189,6 +198,7 @@ export default function App() {
             getMoodColor={mood.getMoodColor}
             videoMood={{
               mood: videoMood.videoMood.mood,
+              originalEmotion: videoMood.videoMood.originalEmotion,
               confidence: videoMood.videoMood.confidence,
               isActive: videoMood.videoMood.isActive
             }}

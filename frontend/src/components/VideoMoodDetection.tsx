@@ -96,11 +96,11 @@ const VideoMoodDetection: React.FC<VideoMoodDetectionProps> = ({
     // Map face-api expressions to our mood system
     const moodMapping: { [key: string]: string } = {
       'happy': 'happy',
-      'sad': 'stressed',
-      'angry': 'stressed',
-      'fearful': 'stressed',
-      'disgusted': 'stressed',
-      'surprised': 'content',
+      'sad': 'sad',
+      'angry': 'angry',
+      'fearful': 'anxious',
+      'disgusted': 'disgusted',
+      'surprised': 'surprised',
       'neutral': 'neutral'
     };
 

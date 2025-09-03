@@ -7,6 +7,7 @@ interface MoodDisplayProps {
   getMoodColor: (mood: string | null) => string;
   videoMood?: {
     mood: string | null;
+    originalEmotion: string | null;
     confidence: number;
     isActive: boolean;
   };
@@ -54,10 +55,10 @@ export const MoodDisplay: React.FC<MoodDisplayProps> = ({
             {/* Video Mood */}
             <div className="pl-4">
               <h4 className="text-xs text-gray-400 mb-2">Video</h4>
-              {videoMood.mood ? (
+              {videoMood.originalEmotion ? (
                 <div className="text-center">
                   <div className="text-2xl mb-1">{getVideoMoodEmoji?.()}</div>
-                  <div className="text-sm font-medium text-gray-100 capitalize">{videoMood.mood}</div>
+                  <div className="text-sm font-medium text-gray-100 capitalize">{videoMood.originalEmotion}</div>
                   <div className="text-xs text-gray-400">{Math.round(videoMood.confidence * 100)}%</div>
                 </div>
               ) : (

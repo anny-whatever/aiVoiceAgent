@@ -1,9 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
 import { UserMood } from '../../../backend/src/types/mood';
+import { useVideoMoodDisplay } from './useVideoMoodDisplay';
 // Video mood is now frontend-only, no URL params needed
 
 interface VideoMoodState {
   mood: UserMood | null;
+  originalEmotion: string | null; // Store the original detected emotion
   confidence: number;
   isActive: boolean;
   lastUpdated: Date | null;
@@ -21,6 +23,7 @@ interface UseVideoMoodReturn {
 const useVideoMood = (): UseVideoMoodReturn => {
   const [videoMood, setVideoMood] = useState<VideoMoodState>({
     mood: null,
+    originalEmotion: null,
     confidence: 0,
     isActive: false,
     lastUpdated: null
@@ -29,13 +32,19 @@ const useVideoMood = (): UseVideoMoodReturn => {
   // Video mood is now frontend-only, no debouncing needed
 
   const updateVideoMood = useCallback(async (mood: string, confidence: number, expressions?: Record<string, number>) => {
-    // Map string mood to UserMood enum
+    // Map string mood to UserMood enum - handle new specific emotions
     const moodMapping: { [key: string]: UserMood } = {
       'happy': UserMood.HAPPY,
       'content': UserMood.CONTENT,
       'neutral': UserMood.NEUTRAL,
       'tired': UserMood.TIRED,
-      'stressed': UserMood.STRESSED
+      'stressed': UserMood.STRESSED,
+      // Map new specific emotions to closest UserMood categories
+      'sad': UserMood.TIRED,
+      'angry': UserMood.STRESSED,
+      'anxious': UserMood.STRESSED,
+      'disgusted': UserMood.STRESSED,
+      'surprised': UserMood.CONTENT
     };
 
     const mappedMood = moodMapping[mood] || UserMood.NEUTRAL;
@@ -43,6 +52,7 @@ const useVideoMood = (): UseVideoMoodReturn => {
     setVideoMood(prev => ({
       ...prev,
       mood: mappedMood,
+      originalEmotion: mood, // Store the original emotion string
       confidence,
       lastUpdated: new Date()
     }));
@@ -53,6 +63,7 @@ const useVideoMood = (): UseVideoMoodReturn => {
   const clearVideoMood = useCallback(() => {
     setVideoMood({
       mood: null,
+      originalEmotion: null,
       confidence: 0,
       isActive: false,
       lastUpdated: null
@@ -66,33 +77,17 @@ const useVideoMood = (): UseVideoMoodReturn => {
     }));
   }, []);
 
+  const { getSpecificMoodEmoji, getSpecificMoodColor } = useVideoMoodDisplay();
+
   const getVideoMoodEmoji = useCallback((): string => {
-    if (!videoMood.mood) return '😐';
-    
-    const emojiMap: { [key in UserMood]: string } = {
-      [UserMood.HAPPY]: '😊',
-      [UserMood.CONTENT]: '😌',
-      [UserMood.NEUTRAL]: '😐',
-      [UserMood.TIRED]: '😴',
-      [UserMood.STRESSED]: '😰'
-    };
-    
-    return emojiMap[videoMood.mood];
-  }, [videoMood.mood]);
+    if (!videoMood.originalEmotion) return '😐';
+    return getSpecificMoodEmoji(videoMood.originalEmotion);
+  }, [videoMood.originalEmotion, getSpecificMoodEmoji]);
 
   const getVideoMoodColor = useCallback((): string => {
-    if (!videoMood.mood) return 'text-gray-500';
-    
-    const colorMap: { [key in UserMood]: string } = {
-      [UserMood.HAPPY]: 'text-green-500',
-      [UserMood.CONTENT]: 'text-blue-500',
-      [UserMood.NEUTRAL]: 'text-gray-500',
-      [UserMood.TIRED]: 'text-purple-500',
-      [UserMood.STRESSED]: 'text-red-500'
-    };
-    
-    return colorMap[videoMood.mood];
-  }, [videoMood.mood]);
+    if (!videoMood.originalEmotion) return 'text-gray-500';
+    return getSpecificMoodColor(videoMood.originalEmotion);
+  }, [videoMood.originalEmotion, getSpecificMoodColor]);
 
   return {
     videoMood,
