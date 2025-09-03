@@ -105,6 +105,8 @@ export class RealtimeEventHandler {
       await this.handleUserInfoCall(event);
     } else if (event.name === "search_web") {
       await this.handleSearchWebCall(event);
+    } else if (event.name === "analyze_image") {
+      await this.handleAnalyzeImageCall(event);
     } else {
       console.warn("⚠️ Unknown function call:", event.name);
     }
@@ -167,6 +169,39 @@ export class RealtimeEventHandler {
       const args = JSON.parse(event.arguments || "{}");
       args.userId = this.args.selectedUser;
       args.sessionId = `session-${Date.now()}-${this.args.selectedUser}`;
+      
+      // Check if the user response contains visual questions
+      const visualKeywords = [
+        'see', 'look', 'watch', 'observe', 'view', 'notice', 'spot', 'wearing', 'color', 'shirt', 'clothes', 'clothing',
+        'appearance', 'visible', 'show', 'display', 'what am i', 'what do you see', 'can you see', 'do you see',
+        'how do i look', 'what color', 'what\'s on', 'describe what', 'tell me what you see'
+      ];
+      
+      const containsVisualQuestion = visualKeywords.some(keyword => 
+        args.userResponse?.toLowerCase().includes(keyword.toLowerCase())
+      );
+
+      // Capture image if visual question is detected and video is available
+      if (containsVisualQuestion && this.args.videoMoodRef?.current) {
+        console.log("🔍 Visual question detected, capturing image...");
+        
+        try {
+          const captureResult = this.args.videoMoodRef.current.captureImage({
+            quality: 0.8,
+            format: 'jpeg'
+          });
+          
+          if (captureResult.success && captureResult.imageData) {
+            args.imageData = captureResult.imageData;
+            console.log("📸 Image captured for mood assessment");
+          } else {
+            console.warn("⚠️ Failed to capture image:", captureResult.error);
+          }
+        } catch (captureError) {
+          console.error("❌ Image capture error:", captureError);
+        }
+      }
+      
       const result = await ApiService.assessUserMood(args);
 
       // Update mood state for UI display
@@ -377,6 +412,62 @@ export class RealtimeEventHandler {
           if (this.args.dcRef.current) {
             console.log(
               "📤 Triggering model response after search error"
+            );
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    }
+  }
+
+  private async handleAnalyzeImageCall(event: any) {
+    try {
+      const args = JSON.parse(event.arguments || "{}");
+      console.log("🖼️ Calling backend for image analysis with args:", args);
+
+      const result = await ApiService.analyzeImage(args);
+      console.log("✅ Image analysis response:", result);
+
+      if (this.args.dcRef.current) {
+        console.log("📤 Sending image analysis result back to model");
+        
+        // Send the analysis result to AI
+        const functionOutput = {
+          success: result.success || false,
+          content: result.content || "I couldn't analyze the image.",
+          analysis: result.data?.analysis || "",
+          context: result.data?.context || null,
+          timestamp: result.data?.timestamp || new Date().toISOString()
+        };
+        
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          JSON.stringify(functionOutput)
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log("📤 Triggering model response after image analysis");
+            this.args.sendResponseCreate(this.args.dcRef.current);
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error("❌ Image analysis error:", error);
+      if (this.args.dcRef.current) {
+        this.args.sendFunctionResult(
+          this.args.dcRef.current,
+          event.call_id,
+          `Sorry, I couldn't analyze the image. Error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+
+        setTimeout(() => {
+          if (this.args.dcRef.current) {
+            console.log(
+              "📤 Triggering model response after image analysis error"
             );
             this.args.sendResponseCreate(this.args.dcRef.current);
           }

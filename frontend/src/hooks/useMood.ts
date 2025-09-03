@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { MoodAssessment } from "../types";
 
 export const useMood = () => {
@@ -7,7 +7,7 @@ export const useMood = () => {
 
 
 
-  const updateMood = (assessment: MoodAssessment | null) => {
+  const updateMood = useCallback((assessment: MoodAssessment | null) => {
     if (assessment) {
       setCurrentMood(assessment.mood);
       setMoodConfidence(assessment.confidence);
@@ -15,14 +15,14 @@ export const useMood = () => {
       setCurrentMood(null);
       setMoodConfidence(0);
     }
-  };
+  }, []);
 
-  const clearMood = () => {
+  const clearMood = useCallback(() => {
     setCurrentMood(null);
     setMoodConfidence(0);
-  };
+  }, []);
 
-  const getMoodEmoji = (mood: string | null): string => {
+  const getMoodEmoji = useCallback((mood: string | null): string => {
     switch (mood) {
       case "happy":
         return "😊";
@@ -37,9 +37,9 @@ export const useMood = () => {
       default:
         return "😐";
     }
-  };
+  }, []);
 
-  const getMoodColor = (mood: string | null): string => {
+  const getMoodColor = useCallback((mood: string | null): string => {
     const colors = {
       happy: '#4ecdc4', // Teal
       content: '#95e1d3', // Light mint green
@@ -49,7 +49,7 @@ export const useMood = () => {
     };
     
     return colors[mood as keyof typeof colors] || '#a8a8a8';
-  };
+  }, []);
 
   return {
     currentMood,

@@ -1,10 +1,16 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import * as faceapi from 'face-api.js';
+import { cameraCapture, CaptureResult, CaptureOptions } from '../services/cameraCapture';
 
 interface VideoMoodDetectionProps {
   onExpressionDetected: (expression: string, confidence: number, expressions?: Record<string, number>) => void;
   isMinimized: boolean;
   onToggleMinimize: () => void;
+}
+
+export interface VideoMoodDetectionRef {
+  captureImage: (options?: CaptureOptions) => CaptureResult;
+  isReady: () => boolean;
 }
 
 interface Expression {
@@ -21,11 +27,10 @@ interface FaceExpressions {
   surprised: number;
 }
 
-const VideoMoodDetection: React.FC<VideoMoodDetectionProps> = ({
-  onExpressionDetected,
-  isMinimized,
-  onToggleMinimize
-}) => {
+const VideoMoodDetection = forwardRef<VideoMoodDetectionRef, VideoMoodDetectionProps>((
+  { onExpressionDetected, isMinimized, onToggleMinimize },
+  ref
+) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +39,35 @@ const VideoMoodDetection: React.FC<VideoMoodDetectionProps> = ({
   const [confidence, setConfidence] = useState<number>(0);
   const [error, setError] = useState<string>('');
   const detectionIntervalRef = useRef<number | null>(null);
+
+  // Expose capture functionality through ref
+  useImperativeHandle(ref, () => ({
+    captureImage: (options?: CaptureOptions): CaptureResult => {
+      if (!videoRef.current) {
+        return {
+          success: false,
+          error: 'Video element not available',
+          timestamp: new Date().toISOString()
+        };
+      }
+      
+      if (!isModelLoaded || videoRef.current.readyState < 2) {
+        return {
+          success: false,
+          error: 'Video not ready or models not loaded',
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      console.log('📸 Capturing image from video stream...');
+      return cameraCapture.captureFromVideo(videoRef.current, options);
+    },
+    isReady: (): boolean => {
+      return isModelLoaded && 
+             videoRef.current !== null && 
+             videoRef.current.readyState >= 2;
+    }
+  }), [isModelLoaded]);
 
   // Load face-api.js models
   const loadModels = useCallback(async () => {
@@ -83,7 +117,7 @@ const VideoMoodDetection: React.FC<VideoMoodDetectionProps> = ({
       console.error('Error accessing webcam:', err);
       setError('Failed to access webcam');
     }
-  }, [isModelLoaded]);
+  }, []);
 
   // Map face-api expressions to mood categories
   const mapExpressionToMood = (expressions: FaceExpressions): { mood: string; confidence: number } => {
@@ -151,7 +185,7 @@ const VideoMoodDetection: React.FC<VideoMoodDetectionProps> = ({
     } catch (err) {
       console.error('Error detecting expressions:', err);
     }
-  }, [isModelLoaded, onExpressionDetected]);
+  }, [isModelLoaded]);
 
   // Start detection loop with optimized performance
   const startDetection = useCallback(() => {
@@ -279,6 +313,8 @@ const VideoMoodDetection: React.FC<VideoMoodDetectionProps> = ({
       </div>
     </div>
   );
-};
+});
+
+VideoMoodDetection.displayName = 'VideoMoodDetection';
 
 export default VideoMoodDetection;

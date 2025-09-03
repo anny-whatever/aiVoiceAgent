@@ -31,30 +31,30 @@ export const useWebRTC = () => {
 
   const setIsConnected = useCallback(
     (connected: boolean) => {
-      updateStatus({ isConnected: connected });
+      setConnectionStatus((prev) => ({ ...prev, isConnected: connected }));
     },
-    [updateStatus]
+    []
   );
 
   const setIsListening = useCallback(
     (listening: boolean) => {
-      updateStatus({ isListening: listening });
+      setConnectionStatus((prev) => ({ ...prev, isListening: listening }));
     },
-    [updateStatus]
+    []
   );
 
   const setIsAISpeaking = useCallback(
     (speaking: boolean) => {
-      updateStatus({ isAISpeaking: speaking });
+      setConnectionStatus((prev) => ({ ...prev, isAISpeaking: speaking }));
     },
-    [updateStatus]
+    []
   );
 
   const setStatus = useCallback(
     (status: string) => {
-      updateStatus({ status });
+      setConnectionStatus((prev) => ({ ...prev, status }));
     },
-    [updateStatus]
+    []
   );
 
   const connect = useCallback(
@@ -74,7 +74,7 @@ export const useWebRTC = () => {
 
         const { pc, dc, mic } = await connectRealtime({
           apiKey,
-          backendUrl: import.meta.env.VITE_BACKEND || '',
+          backendUrl: (import.meta as any).env?.VITE_BACKEND || '',
           onEvent,
           onRemoteTrack,
         });
@@ -400,6 +400,26 @@ You MUST use the available functions when appropriate. Mood can change during co
                   },
                 },
                 required: ["query"],
+              },
+            },
+            {
+              type: "function",
+              name: "analyze_image",
+              description:
+                "Analyze images captured from the camera when user asks vision-related questions like 'can you see', 'look at this', 'what do you see', or requests visual analysis. This tool uses OpenAI Vision API to describe what's visible in the image.",
+              parameters: {
+                type: "object",
+                properties: {
+                  imageData: {
+                    type: "string",
+                    description: "Base64 encoded image data from camera capture",
+                  },
+                  context: {
+                    type: "string",
+                    description: "Optional context about what the user is asking about the image",
+                  },
+                },
+                required: ["imageData"],
               },
             },
           ],

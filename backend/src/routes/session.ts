@@ -49,7 +49,27 @@ router.post("/session", validateApiKey, async (req, res) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: "alloy",
-        tools: [],
+        tools: [
+          {
+            type: "function",
+            name: "analyze_image",
+            description: "Analyze an image captured from the user's camera to describe what you can see. Use this when the user asks questions like 'can you see', 'look at this', 'what do you see', or similar vision-related requests.",
+            parameters: {
+              type: "object",
+              properties: {
+                imageData: {
+                  type: "string",
+                  description: "Base64 encoded image data from the camera capture"
+                },
+                context: {
+                  type: "string",
+                  description: "Context or question from the user about what they want you to analyze in the image"
+                }
+              },
+              required: ["imageData"]
+            }
+          }
+        ],
         instructions: `${userData.instructions}\n\nStart the conversation by asking the user how they're feeling today to assess their mood. Use the assess_user_mood tool to analyze their response and adapt your tone accordingly.\n\nYour session has a time limit of 60 minutes. If you receive an END_SESSION action from any tool call, you must immediately end the conversation politely.`,
       }),
     });

@@ -176,8 +176,21 @@ export class ApiService {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      throw new Error(`Search web failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  static async analyzeImage(args: any): Promise<ApiResponse> {
+    const response = await fetch(`${BACKEND_URL}/api/tools/analyze_image?${this.getApiQueryParams()}`, {
+      method: "POST",
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(args),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Image analysis failed: ${response.statusText}`);
     }
 
     return response.json();

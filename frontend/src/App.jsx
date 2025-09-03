@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import "./index.css";
 import {
   sendFunctionResult,
@@ -20,12 +20,16 @@ import {
   VoiceControls,
   InfoPanel,
   VideoMoodDetection,
+  VisionAnalysisDisplay,
+  VisionStatusIndicator,
 } from "./components";
+
+import { useVisionCapture } from "./hooks/useVisionCapture";
 
 export default function App() {
   // Custom hooks
   const webRTC = useWebRTC();
-  const { userDing, aiDing, controlMicrophone } = useAudio();
+  const { userDing, aiDing } = useAudio();
   const mood = useMood();
   const videoMood = useVideoMood();
   const languages = useLanguages();
@@ -37,8 +41,38 @@ export default function App() {
   // URL params state
   const [urlParams, setUrlParams] = useState(null);
   const [paramError, setParamError] = useState(null);
+  
+  // Vision analysis state
+  const [showVisionAnalysis, setShowVisionAnalysis] = useState(false);
+  const [lastVisionResult, setLastVisionResult] = useState(null);
+  const [lastCapturedImage, setLastCapturedImage] = useState(null);
+  const [lastAnalysisTime, setLastAnalysisTime] = useState(null);
 
   const audioRef = useRef(null);
+  const videoMoodRef = useRef(null);
+  
+  // Vision capture hook
+  const visionCapture = useVisionCapture({
+    enabled: true,
+    onCaptureStart: () => {
+      console.log('📸 Vision capture started...');
+    },
+    onCaptureComplete: (result) => {
+      console.log('📸 Vision capture completed:', result);
+      if (result.success && result.imageData) {
+        setLastCapturedImage(result.imageData);
+      }
+    },
+    onAnalysisComplete: (analysis) => {
+      console.log('🔍 Vision analysis completed:', analysis);
+      setLastVisionResult(analysis);
+      setLastAnalysisTime(new Date());
+      setShowVisionAnalysis(true);
+    },
+    onError: (error) => {
+      console.error('❌ Vision capture error:', error);
+    }
+  });
 
   // Initialize URL parameters on app start
   useEffect(() => {
@@ -53,23 +87,45 @@ export default function App() {
     }
   }, []);
 
-  // Create event handler with dependencies
-  const eventHandler = new RealtimeEventHandler({
-    selectedUser: urlParams?.uid || 'unknown',
-    dcRef: webRTC.refs.dc,
-  backendUrl: import.meta.env.VITE_BACKEND,
-    setCurrentMood: mood.setCurrentMood,
-    setMoodConfidence: mood.setMoodConfidence,
-    setIsListening: webRTC.setIsListening,
-    setIsAISpeaking: webRTC.setIsAISpeaking,
-    setStatus: webRTC.setStatus,
-    micRef: webRTC.refs.mic,
+  // Set video ref for vision capture when component mounts
+  useEffect(() => {
+    if (videoMoodRef.current) {
+      visionCapture.setVideoRef(videoMoodRef);
+    }
+  }, [visionCapture]);
+
+  // Create event handler with dependencies - memoized to prevent infinite loops
+  const eventHandler = useCallback(() => {
+    return new RealtimeEventHandler({
+      selectedUser: urlParams?.uid || 'unknown',
+      dcRef: webRTC.refs.dc,
+      backendUrl: import.meta.env.VITE_BACKEND,
+      setCurrentMood: mood.setCurrentMood,
+      setMoodConfidence: mood.setMoodConfidence,
+      setIsListening: webRTC.setIsListening,
+      setIsAISpeaking: webRTC.setIsAISpeaking,
+      setStatus: webRTC.setStatus,
+      micRef: webRTC.refs.mic,
+      userDing,
+      aiDing,
+      sendSessionUpdate,
+      sendFunctionResult,
+      sendResponseCreate,
+      videoMoodRef,
+    });
+  }, [
+    urlParams?.uid,
+    webRTC.refs.dc,
+    mood.setCurrentMood,
+    mood.setMoodConfidence,
+    webRTC.setIsListening,
+    webRTC.setIsAISpeaking,
+    webRTC.setStatus,
+    webRTC.refs.mic,
     userDing,
     aiDing,
-    sendSessionUpdate,
-    sendFunctionResult,
-    sendResponseCreate,
-  });
+    videoMoodRef
+  ]);
 
   const handleStart = async () => {
     if (!urlParams) {
@@ -78,16 +134,17 @@ export default function App() {
     }
     
     try {
-      const { dc } = await webRTC.connect(
+      const handler = eventHandler();
+      await webRTC.connect(
         urlParams.uid,
-        eventHandler.handleEvent.bind(eventHandler),
+        handler.handleEvent.bind(handler),
         (stream) => {
           if (audioRef.current) {
             audioRef.current.srcObject = stream;
             audioRef.current.play().catch(console.error);
           }
         },
-        (sessionInfo) => {
+        () => {
           // Initialize WebSocket connection for quota updates
           quota.initializeWebSocket();
           quota.updateQuotaStatus();
@@ -95,6 +152,8 @@ export default function App() {
           quota.startTimer();
           // Activate video mood detection
           videoMood.setVideoMoodActive(true);
+          // Start vision capture listening when connected
+          visionCapture.startListening();
         }
       );
 
@@ -141,15 +200,16 @@ export default function App() {
     }
   };
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     webRTC.disconnect();
     mood.clearMood();
     videoMood.clearVideoMood();
     videoMood.setVideoMoodActive(false);
+    visionCapture.stopListening();
     // Stop the timer and reset session
     quota.stopTimer();
     quota.resetSession();
-  };
+  }, []);
 
   // Handle automatic session termination
   useEffect(() => {
@@ -157,7 +217,7 @@ export default function App() {
       console.log('Session terminated due to time limit, disconnecting...');
       handleStop();
     }
-  }, [quota.isSessionTerminated, webRTC.connectionStatus.isConnected]);
+  }, [quota.isSessionTerminated, webRTC.connectionStatus.isConnected, handleStop]);
 
   // Activate video mood when connected
   useEffect(() => {
@@ -169,7 +229,7 @@ export default function App() {
   }, [webRTC.connectionStatus.isConnected]);
 
   // Cleanup on unmount
-  useEffect(() => () => handleStop(), []);
+  useEffect(() => () => handleStop(), [handleStop]);
 
   return (
     <div className="flex flex-col min-h-screen text-white bg-gradient-to-br from-black via-gray-900 to-black">
@@ -204,6 +264,26 @@ export default function App() {
             }}
             getVideoMoodEmoji={videoMood.getVideoMoodEmoji}
             getVideoMoodColor={videoMood.getVideoMoodColor}
+          />
+          
+          {/* Vision Status Indicator */}
+          <VisionStatusIndicator
+            isListening={visionCapture.isListening}
+            isCapturing={visionCapture.isCapturing}
+            isAnalyzing={visionCapture.isAnalyzing}
+            lastAnalysisTime={lastAnalysisTime}
+            onToggleListening={() => {
+              if (visionCapture.isListening) {
+                visionCapture.stopListening();
+              } else {
+                visionCapture.startListening();
+              }
+            }}
+            onShowLastAnalysis={() => {
+              if (lastVisionResult) {
+                setShowVisionAnalysis(true);
+              }
+            }}
           />
           <InfoPanel />
         </div>
@@ -267,6 +347,7 @@ export default function App() {
       {webRTC.connectionStatus.isConnected && (
         <div className="fixed bottom-4 right-4 z-20">
           <VideoMoodDetection
+            ref={videoMoodRef}
             onExpressionDetected={videoMood.updateVideoMood}
             isMinimized={isVideoMinimized}
             onToggleMinimize={() => setIsVideoMinimized(!isVideoMinimized)}
@@ -275,6 +356,15 @@ export default function App() {
       )}
 
       <audio ref={audioRef} autoPlay className="hidden" />
+      
+      {/* Vision Analysis Modal */}
+      <VisionAnalysisDisplay
+        isVisible={showVisionAnalysis}
+        capturedImage={lastCapturedImage}
+        analysisResult={lastVisionResult}
+        isAnalyzing={visionCapture.isAnalyzing}
+        onClose={() => setShowVisionAnalysis(false)}
+      />
     </div>
   );
 }

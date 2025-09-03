@@ -472,7 +472,7 @@ router.post("/tools/assess_user_mood",
   async (req: AuthenticatedRequest, res) => {
   console.log("🧠 Mood assessment tool called:", req.body);
 
-  const { userResponse, sessionId } = req.body || {};
+  const { userResponse, sessionId, imageData } = req.body || {};
   const userId = req.firebase_uid; // Get from middleware
   
   if (!userId) {
@@ -495,6 +495,60 @@ router.post("/tools/assess_user_mood",
   }
 
   try {
+    // Check if the user response contains visual questions
+    const visualKeywords = [
+      'see', 'look', 'watch', 'observe', 'view', 'notice', 'spot', 'wearing', 'color', 'shirt', 'clothes', 'clothing',
+      'appearance', 'visible', 'show', 'display', 'what am i', 'what do you see', 'can you see', 'do you see',
+      'how do i look', 'what color', 'what\'s on', 'describe what', 'tell me what you see'
+    ];
+    
+    const containsVisualQuestion = visualKeywords.some(keyword => 
+      userResponse.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    let visualAnalysis = null;
+    if (containsVisualQuestion && imageData) {
+      console.log("🔍 Visual question detected, analyzing image...");
+      
+      // Analyze the image using OpenAI Vision API
+      const visionResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `The user asked: "${userResponse}". Please analyze this image and provide a detailed description focusing on what the user is asking about. Be specific about colors, clothing, objects, and any visual details that relate to their question.`
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${imageData}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 500
+        })
+      });
+
+      if (visionResponse.ok) {
+        const visionResult = await visionResponse.json();
+        visualAnalysis = visionResult.choices?.[0]?.message?.content || "I couldn't analyze the image.";
+        console.log("✅ Visual analysis completed:", visualAnalysis.substring(0, 100) + "...");
+      } else {
+        console.error("❌ Vision API error:", await visionResponse.text());
+      }
+    }
+
     const moodAssessment = await assessUserMood(
       userId,
       userResponse,
@@ -509,14 +563,22 @@ router.post("/tools/assess_user_mood",
       moodAssessment.confidence.toFixed(2)
     );
 
+    // Combine mood assessment with visual analysis if available
+    let responseContent = `Mood detected: ${moodAssessment.mood} (${Math.round(
+      moodAssessment.confidence * 100
+    )}% confidence). ${
+      moodAssessment.reasoning
+    }. I'll adjust my tone accordingly throughout our conversation.`;
+
+    if (visualAnalysis) {
+      responseContent = `${visualAnalysis}\n\n${responseContent}`;
+    }
+
     return res.json({
       assessment: moodAssessment,
       instructions: moodInstructions,
-      content: `Mood detected: ${moodAssessment.mood} (${Math.round(
-        moodAssessment.confidence * 100
-      )}% confidence). ${
-        moodAssessment.reasoning
-      }. I'll adjust my tone accordingly throughout our conversation.`,
+      content: responseContent,
+      visualAnalysis: visualAnalysis
     });
   } catch (e: any) {
     console.error("❌ Mood assessment error:", e);
@@ -616,6 +678,88 @@ router.post("/tools/search_web",
       return res.status(500).json({
         error: "Failed to perform search",
         details: e?.message || "Unknown error",
+      });
+    }
+  }
+);
+
+/** Analyze image endpoint - for processing camera captures with OpenAI Vision API */
+router.post("/tools/analyze_image",
+  validateApiKey,
+  extractFirebaseUid,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { imageData, context } = req.body;
+      const userId = req.firebase_uid;
+
+      if (!imageData) {
+        return res.status(400).json({
+          error: "Missing required parameter",
+          message: "imageData is required for image analysis",
+        });
+      }
+
+      console.log(`🖼️ Analyzing image for user ${userId}`);
+      console.log(`📝 Context: ${context || 'No context provided'}`);
+
+      // Call OpenAI Vision API
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: context 
+                    ? `The user asked: "${context}". Please analyze this image and provide a detailed description of what you can see, focusing on what the user is asking about.`
+                    : "Please analyze this image and provide a detailed description of what you can see."
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${imageData}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 500
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ OpenAI Vision API error:", errorText);
+        throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+      }
+
+      const result = await response.json();
+      const analysis = result.choices?.[0]?.message?.content || "I couldn't analyze the image.";
+
+      console.log(`✅ Image analysis completed for user ${userId}`);
+
+      return res.json({
+        success: true,
+        content: analysis,
+        data: {
+          analysis,
+          context: context || null,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    } catch (error) {
+      console.error("❌ Image analysis error:", error);
+      return res.status(500).json({
+        error: "Image analysis failed",
+        message: error instanceof Error ? error.message : "Unknown error occurred",
       });
     }
   }

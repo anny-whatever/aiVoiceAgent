@@ -164,12 +164,12 @@ const useVideoMood = (): UseVideoMoodReturn => {
   const getVideoMoodEmoji = useCallback((): string => {
     if (!videoMood.originalEmotion) return '😐';
     return getSpecificMoodEmoji(videoMood.originalEmotion);
-  }, [videoMood.originalEmotion, getSpecificMoodEmoji]);
+  }, [videoMood.originalEmotion]);
 
   const getVideoMoodColor = useCallback((): string => {
     if (!videoMood.originalEmotion) return 'text-gray-500';
     return getSpecificMoodColor(videoMood.originalEmotion);
-  }, [videoMood.originalEmotion, getSpecificMoodColor]);
+  }, [videoMood.originalEmotion]);
 
   return {
     videoMood,

@@ -6,3 +6,5 @@ export { VoiceControls } from "./VoiceControls";
 export { InfoPanel } from "./InfoPanel";
 export { QuotaIndicator } from "./QuotaIndicator";
 export { default as VideoMoodDetection } from './VideoMoodDetection';
+export { VisionAnalysisDisplay } from './VisionAnalysisDisplay';
+export { VisionStatusIndicator } from './VisionStatusIndicator';

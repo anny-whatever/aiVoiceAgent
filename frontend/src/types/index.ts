@@ -62,6 +62,7 @@ export interface EventHandlerArgs {
   setIsAISpeaking: (speaking: boolean) => void;
   setStatus: (status: string) => void;
   micRef: React.MutableRefObject<MediaStream | null>;
+  videoMoodRef?: React.MutableRefObject<any>;
   userDing: () => void;
   aiDing: () => void;
   sendSessionUpdate: (dc: RTCDataChannel, update: any) => void;
