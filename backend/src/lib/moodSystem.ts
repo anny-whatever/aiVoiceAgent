@@ -30,13 +30,18 @@ export async function assessUserMood(
   );
 
   try {
-    // Get current session to check for previous mood
+    // Get current session to check for previous mood and video data
     const currentSession = getSessionData(userId, sessionId);
     const currentMood = previousMood || currentSession?.currentMood?.mood;
+    const hasVideoMood = currentSession?.videoMood;
 
     const moodContext = currentMood
       ? `The user's previous mood was "${currentMood}". Detect if their mood has changed or remains the same.`
       : "This is the first mood assessment for this user in this session.";
+    
+    const videoContext = hasVideoMood
+      ? `\n\nVIDEO MOOD CONTEXT: Facial expression analysis detected "${hasVideoMood.mood}" with ${Math.round(hasVideoMood.confidence * 100)}% confidence. Consider this visual cue alongside the speech analysis for a more accurate assessment.`
+      : "";
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -49,9 +54,11 @@ export async function assessUserMood(
         messages: [
           {
             role: "system",
-            content: `You are an expert human emotion and tone analyst who understands ALL languages. Analyze EVERY human response for emotional undertones, context, and implied mood - even in seemingly neutral statements. You will receive responses in ANY language (English, Spanish, French, German, etc.).
+            content: `You are an expert human emotion and tone analyst who understands ALL languages and combines speech analysis with facial expression data when available. Analyze EVERY human response for emotional undertones, context, and implied mood - even in seemingly neutral statements. You will receive responses in ANY language (English, Spanish, French, German, etc.).
 
 LANGUAGE SUPPORT: Analyze emotional content in any language and respond in English with mood assessment.
+
+MULTI-MODAL ANALYSIS: You have access to both speech/text analysis and facial expression data when available. Use both sources to create the most accurate mood assessment.
 
 AVAILABLE MOODS (choose exactly one):
 - happy: Joyful, cheerful, upbeat, pleased, good spirits, excited, enthusiastic, positive, great, wonderful, nice, awesome, fantastic, amazing, thrilled
@@ -79,14 +86,15 @@ UNIVERSAL ANALYSIS RULES:
 6. ENTHUSIASM indicators: Exclamation marks, positive adjectives, upbeat language
 
 MOOD CHANGE DETECTION:
-${moodContext}
+${moodContext}${videoContext}
 - If mood seems to have changed, choose the NEW mood with appropriate confidence
 - If mood appears stable, confirm the current mood
 - Be sensitive to even subtle emotional shifts
 - ALWAYS PRIORITIZE POSITIVE MOOD DETECTION - if there's ANY positive language, choose HAPPY over neutral
+- When video mood data is available, consider it as supporting evidence but prioritize speech analysis for final decision
 
 CONFIDENCE SCORING:
-- 0.9-1.0: Very clear emotional indicators
+- 0.9-1.0: Very clear emotional indicators (especially when speech and video agree)
 - 0.7-0.8: Good evidence with some uncertainty
 - 0.5-0.6: Moderate indicators, could be multiple moods
 - 0.3-0.4: Weak signals, best guess
@@ -149,25 +157,29 @@ Respond ONLY with a JSON object in this exact format:
       source: 'speech',
     };
 
-    // Store in session
+    // Store speech assessment in session
     updateSessionMood(userId, sessionId, assessment);
 
+    // Get combined mood assessment (speech + video if available)
+    const combinedAssessment = getCombinedMoodAssessment(userId, sessionId);
+    const finalAssessment = combinedAssessment || assessment;
+
     // Log mood changes
-    if (currentMood && currentMood !== assessment.mood) {
+    if (currentMood && currentMood !== finalAssessment.mood) {
       console.log(
         `🔄 Mood change detected: ${currentMood} → ${
-          assessment.mood
-        } (confidence: ${confidence.toFixed(2)})`
+          finalAssessment.mood
+        } (confidence: ${finalAssessment.confidence.toFixed(2)}) [${finalAssessment.source}]`
       );
     }
 
     console.log(
       `✅ AI Mood assessed: ${
-        assessment.mood
-      } (confidence: ${confidence.toFixed(2)}) - ${assessment.reasoning}`
+        finalAssessment.mood
+      } (confidence: ${finalAssessment.confidence.toFixed(2)}) [${finalAssessment.source}] - ${finalAssessment.reasoning}`
     );
 
-    return assessment;
+    return finalAssessment;
   } catch (error) {
     console.error("❌ AI mood assessment failed:", error);
 
@@ -227,10 +239,16 @@ export function getSessionData(
 /**
  * Generates mood-specific instructions for the AI agent
  */
-export function generateMoodInstructions(mood: UserMood): string {
-  const characteristics = MOOD_CHARACTERISTICS[mood];
+export function generateMoodInstructions(moodAssessment: MoodAssessment): string {
+  const characteristics = MOOD_CHARACTERISTICS[moodAssessment.mood];
+  
+  const sourceDescription = {
+    'speech': 'speech analysis',
+    'video': 'facial expression analysis', 
+    'combined': 'combined speech and facial expression analysis'
+  }[moodAssessment.source] || 'mood analysis';
 
-  return `MOOD CONTEXT: The user is currently ${mood}. 
+  return `MOOD CONTEXT: The user is currently ${moodAssessment.mood} (detected via ${sourceDescription} with ${Math.round(moodAssessment.confidence * 100)}% confidence). 
 
 TONE ADJUSTMENT: Adopt a ${characteristics.tone} tone in all responses.
 
@@ -349,28 +367,44 @@ export function getCombinedMoodAssessment(
     };
   }
   
-  // If both exist, combine them
+  // If both exist, combine them with 60% video weight, 40% speech weight
   if (speechMood && videoMood) {
-    // Weight speech mood higher as it's more contextual
-    const speechWeight = 0.7;
-    const videoWeight = 0.3;
+    // Weight video mood higher as facial expressions are more immediate indicators
+    const videoWeight = 0.6;
+    const speechWeight = 0.4;
     
     const combinedConfidence = (
       speechMood.confidence * speechWeight + 
       videoMood.confidence * videoWeight
     );
     
-    // Use speech mood as primary, but boost confidence if video agrees
-    const finalMood = speechMood.mood === videoMood.mood 
-      ? speechMood.mood 
-      : speechMood.mood; // Prioritize speech for disagreements
+    // Calculate weighted mood scores for each possible mood
+    const moodScores = new Map<UserMood, number>();
+    
+    // Add speech mood score
+    const speechScore = speechMood.confidence * speechWeight;
+    moodScores.set(speechMood.mood, (moodScores.get(speechMood.mood) || 0) + speechScore);
+    
+    // Add video mood score
+    const videoScore = videoMood.confidence * videoWeight;
+    moodScores.set(videoMood.mood, (moodScores.get(videoMood.mood) || 0) + videoScore);
+    
+    // Find the mood with highest weighted score
+    let finalMood = speechMood.mood;
+    let maxScore = 0;
+    for (const [mood, score] of moodScores.entries()) {
+      if (score > maxScore) {
+        maxScore = score;
+        finalMood = mood;
+      }
+    }
     
     const agreementBonus = speechMood.mood === videoMood.mood ? 0.1 : 0;
     
     return {
       mood: finalMood,
       confidence: Math.min(1, combinedConfidence + agreementBonus),
-      reasoning: `Combined analysis: speech (${speechMood.mood}, ${(speechMood.confidence * 100).toFixed(0)}%) + video (${videoMood.mood}, ${(videoMood.confidence * 100).toFixed(0)}%)`,
+      reasoning: `Combined analysis (60% video, 40% speech): speech (${speechMood.mood}, ${(speechMood.confidence * 100).toFixed(0)}%) + video (${videoMood.mood}, ${(videoMood.confidence * 100).toFixed(0)}%) → ${finalMood}`,
       timestamp: new Date().toISOString(),
       source: 'combined'
     };

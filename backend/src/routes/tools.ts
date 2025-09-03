@@ -500,7 +500,7 @@ router.post("/tools/assess_user_mood",
       userResponse,
       sessionId
     );
-    const moodInstructions = generateMoodInstructions(moodAssessment.mood);
+    const moodInstructions = generateMoodInstructions(moodAssessment);
 
     console.log(
       "✅ Mood assessed:",
