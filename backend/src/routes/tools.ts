@@ -59,7 +59,7 @@ router.get("/user/:firebase_uid",
         success: true,
         user: {
           id: user.firebase_uid,
-          name: user.name,
+          name: user.display_name,
           email: user.email,
           is_active: user.is_active
         }
