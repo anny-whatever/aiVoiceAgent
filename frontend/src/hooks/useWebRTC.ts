@@ -149,8 +149,8 @@ export const useWebRTC = () => {
 
         // Find the actual user name from users array
         const currentUser = users.find((user) => user.id === selectedUser);
-        // const userName = currentUser ? currentUser.name : selectedUser;
-        const userName = "User";
+        const userName = currentUser ? currentUser.name : selectedUser;
+        // const userName = "User";
 
         console.log("🔧 Configuring session with tools...");
         sendSessionUpdate(dc, {
